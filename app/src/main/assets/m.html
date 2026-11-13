@@ -9,34 +9,25 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
         }
-        body {
+        html, body {
             background: #000000;
-            min-height: 100vh;
-            min-height: 100dvh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
             font-family: 'Segoe UI', 'Poppins', system-ui, sans-serif;
-            padding: env(safe-area-inset-top, 20px) 20px env(safe-area-inset-bottom, 20px) 20px;
-            position: relative;
             user-select: none;
             -webkit-user-select: none;
             -webkit-touch-callout: none;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-            overflow-y: auto;
+            overscroll-behavior: none;
         }
-        body::-webkit-scrollbar, html::-webkit-scrollbar, *::-webkit-scrollbar {
+        ::-webkit-scrollbar {
             display: none !important;
             width: 0 !important;
-            background: transparent !important;
         }
-        .player-page, .track-list, .player-lyrics, .ae-container, .ae-loader {
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-        }
-        .stars-container {
+        #stars-canvas {
             position: fixed;
             top: 0;
             left: 0;
@@ -44,25 +35,30 @@
             height: 100%;
             pointer-events: none;
             z-index: 0;
-            overflow: hidden;
         }
-        .star {
+        .main-page {
             position: absolute;
-            background-color: white;
-            border-radius: 50%;
-            width: 2px;
-            height: 2px;
-            opacity: 0;
-            animation: randomTwinkle infinite ease-in-out;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: env(safe-area-inset-top, 20px) 20px env(safe-area-inset-bottom, 25px) 20px;
+            z-index: 2;
+            transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.28s ease;
+            will-change: transform, opacity;
         }
-        @keyframes randomTwinkle {
-            0%, 85% { opacity: 0; transform: scale(0.8); }
-            90% { opacity: 1; transform: scale(1.2); }
-            95% { opacity: 1; transform: scale(1); }
-            100% { opacity: 0; transform: scale(0.8); }
+        .main-page.page-behind {
+            transform: scale(0.95);
+            opacity: 0;
+            pointer-events: none;
+        }
+        .content-wrapper {
+            max-width: 580px;
+            margin: 0 auto;
         }
         .main-header, .main-footer {
-            background: rgba(0, 0, 0, 0.7);
             padding: 10px 0;
             text-align: center;
             width: 100%;
@@ -76,94 +72,101 @@
             display: block;
             margin: 0 auto;
         }
-        .main-page, .player-page {
-            transition: opacity 0.3s ease;
-            width: 100%;
-            max-width: 580px;
-            z-index: 2;
-        }
-        .main-page { display: block; }
-        .player-page {
-            position: fixed;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100%;
-            max-width: 580px;
-            height: 100vh;
-            height: 100dvh;
-            overflow-y: auto;
-            background: transparent;
-            padding: env(safe-area-inset-top, 20px) 20px env(safe-area-inset-bottom, 20px) 20px;
-            z-index: 10;
-        }
-        .hidden { display: none !important; }
-        .player-container {
-            background: transparent;
-            padding: 0;
-            width: 100%;
-        }
         .track-list {
             display: flex;
             flex-direction: column;
             gap: 14px;
-            padding-left: 5px;
         }
         .track-item {
-            background: rgba(0, 0, 0, 0.55);
+            background: linear-gradient(135deg, rgba(28, 28, 36, 0.88), rgba(14, 14, 20, 0.92));
             border-radius: 32px;
             display: flex;
             align-items: center;
             gap: 15px;
             padding: 8px 15px 8px 10px;
-            transition: 0.2s;
-            border: 1px solid rgba(255,255,255,0.15);
-            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
             direction: ltr;
             text-align: left;
             cursor: pointer;
+            transform: translateZ(0);
+            transition: transform 0.15s ease, border-color 0.2s ease;
         }
         .track-item:active {
-            background: rgba(255, 255, 255, 0.1);
-            transform: scale(0.99);
+            transform: scale(0.98);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        .track-item.active-track {
+            border-color: rgba(255, 245, 210, 0.45);
+            background: linear-gradient(135deg, rgba(40, 38, 52, 0.92), rgba(18, 18, 26, 0.95));
         }
         .cover-img {
             width: 55px;
             height: 55px;
             border-radius: 18px;
             object-fit: cover;
-            box-shadow: 0 5px 12px rgba(0,0,0,0.3);
-            order: 1;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+            flex-shrink: 0;
         }
-        .track-info { flex: 1; order: 2; }
+        .track-info {
+            flex: 1;
+            min-width: 0;
+        }
         .track-title {
             font-weight: 600;
             color: #ffffff;
             font-size: 1rem;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-            text-align: left;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .track-artist {
-            font-size: 0.75rem;
-            color: #e0e0ff;
-            text-align: left;
+            font-size: 0.76rem;
+            color: #d0d0f0;
+            margin-top: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .moon-canvas {
             width: 55px;
             height: 55px;
             cursor: pointer;
             border-radius: 50%;
-            order: 3;
-            transition: 0.2s;
-            background: transparent;
-            filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.6)) drop-shadow(0 0 12px rgba(255, 255, 255, 0.3));
+            flex-shrink: 0;
+            transform: translateZ(0);
+        }
+        .player-page {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            background: rgba(0, 0, 0, 0.78);
+            padding: env(safe-area-inset-top, 20px) 20px env(safe-area-inset-bottom, 20px) 20px;
+            z-index: 10;
+            opacity: 0;
+            transform: translate3d(0, 25px, 0);
+            pointer-events: none;
+            transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.28s ease;
+            will-change: transform, opacity;
+        }
+        .player-page.open {
+            opacity: 1;
+            transform: translate3d(0, 0, 0);
+            pointer-events: auto;
+        }
+        .player-inner {
+            max-width: 580px;
+            margin: 0 auto;
         }
         .player-page-header {
             display: flex;
             align-items: center;
             justify-content: flex-start;
-            margin-bottom: 20px;
-            direction: ltr;
+            margin-bottom: 15px;
         }
         .back-button {
             background: transparent;
@@ -174,8 +177,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 0;
         }
+        .back-button:active { transform: scale(0.9); }
         .back-img {
             width: 30px;
             height: 30px;
@@ -185,23 +188,24 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 20px;
+            gap: 18px;
         }
         .player-cover {
-            width: 200px;
-            height: 200px;
+            width: 210px;
+            height: 210px;
             border-radius: 30px;
             object-fit: cover;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.65);
         }
         .player-lyrics {
-            background: rgba(0, 0, 0, 0.65);
-            backdrop-filter: blur(12px);
+            background: rgba(18, 18, 24, 0.88);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 28px;
             padding: 20px;
             width: 100%;
-            max-height: 300px;
+            max-height: 280px;
             overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
             color: #eee;
             font-size: 0.9rem;
             line-height: 1.6;
@@ -213,7 +217,7 @@
         }
         .player-controls-section {
             width: 100%;
-            margin-top: 10px;
+            margin-top: 8px;
             display: flex;
             flex-direction: column;
             gap: 15px;
@@ -223,7 +227,6 @@
             align-items: center;
             gap: 12px;
             width: 100%;
-            direction: ltr;
         }
         .time {
             color: white;
@@ -236,9 +239,8 @@
             flex: 1;
             height: 6px;
             -webkit-appearance: none;
-            background: rgba(255,255,255,0.2);
+            background: rgba(255, 255, 255, 0.2);
             border-radius: 6px;
-            outline: none;
             cursor: pointer;
         }
         .progress-bar::-webkit-slider-thumb {
@@ -247,36 +249,29 @@
             height: 14px;
             border-radius: 50%;
             background: white;
-            cursor: pointer;
-            box-shadow: 0 0 6px rgba(255,255,255,0.8);
+            box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
         }
         .buttons-container {
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 35px;
+            gap: 38px;
             margin: 10px 0;
         }
         .control-btn {
             background: transparent;
             border: none;
-            padding: 0;
-            margin: 0;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            transition: transform 0.15s ease;
+            transition: transform 0.12s ease;
         }
-        .control-btn:active { transform: scale(0.92); }
+        .control-btn:active { transform: scale(0.88); }
         .control-btn img {
-            width: 42px;
-            height: 42px;
+            width: 40px;
+            height: 40px;
             display: block;
-        }
-        button, .control-btn, .back-button, .track-item {
-            -webkit-tap-highlight-color: transparent;
-            outline: none;
         }
         .splash-screen {
             position: fixed;
@@ -289,11 +284,13 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            transition: opacity 1s ease-out;
+            transition: opacity 0.6s ease-out;
             opacity: 1;
         }
-        .splash-screen.fade-out { opacity: 0; }
-        .ae-loader { text-align: center; direction: ltr; }
+        .splash-screen.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
         .ae-container {
             display: flex;
             align-items: center;
@@ -301,7 +298,6 @@
             gap: 1px;
         }
         .ae-item {
-            display: inline-block;
             width: 55px;
             height: 55px;
             background-size: contain;
@@ -311,12 +307,11 @@
             margin-right: -12px;
         }
         .dot-item {
-            display: inline-block;
             width: 7px;
             height: 7px;
             background: white;
             border-radius: 50%;
-            box-shadow: 0 0 8px rgba(255,255,255,0.8);
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
             margin-left: 5px;
         }
         .dot-item:not(:last-child) { margin-right: 8px; }
@@ -324,51 +319,55 @@
 </head>
 <body>
     <div id="splash-screen" class="splash-screen">
-        <div class="ae-loader">
-            <div id="ae-container" class="ae-container"></div>
-        </div>
+        <div id="ae-container" class="ae-container"></div>
     </div>
-    <div class="stars-container"></div>
+
+    <canvas id="stars-canvas"></canvas>
+
     <div id="main-page" class="main-page">
-        <div class="main-header">
-            <img src="file:///android_asset/media/images/header.png" alt="My Love's Favorites" class="header-footer-image">
-        </div>
-        <div class="player-container">
+        <div class="content-wrapper">
+            <div class="main-header">
+                <img src="file:///android_asset/media/images/header.png" alt="My Love's Favorites" class="header-footer-image">
+            </div>
             <div id="track-list" class="track-list"></div>
-        </div>
-        <div class="main-footer">
-            <img src="file:///android_asset/media/images/footer.png" alt="Footer" class="header-footer-image">
+            <div class="main-footer">
+                <img src="file:///android_asset/media/images/footer.png" alt="Footer" class="header-footer-image">
+            </div>
         </div>
     </div>
-    <div id="player-page" class="player-page hidden">
-        <div class="player-page-header">
-            <button id="back-button" class="back-button">
-                <img src="file:///android_asset/media/images/back.png" alt="Back" class="back-img">
-            </button>
-        </div>
-        <div class="player-page-content">
-            <img id="player-cover" class="player-cover" src="" alt="Cover">
-            <div id="player-lyrics" class="player-lyrics"></div>
-            <div class="player-controls-section">
-                <div class="timeline-container">
-                    <span id="current-time" class="time">0:00</span>
-                    <input type="range" id="progress-bar" class="progress-bar" value="0" step="0.01">
-                    <span id="duration-time" class="time">0:00</span>
-                </div>
-                <div class="buttons-container">
-                    <button id="prev-button" class="control-btn">
-                        <img src="file:///android_asset/media/images/prev.png" alt="Previous">
-                    </button>
-                    <button id="play-pause-button" class="control-btn play-btn">
-                        <img id="play-pause-img" src="file:///android_asset/media/images/play.png" alt="Play">
-                    </button>
-                    <button id="next-button" class="control-btn">
-                        <img src="file:///android_asset/media/images/next.png" alt="Next">
-                    </button>
+
+    <div id="player-page" class="player-page">
+        <div class="player-inner">
+            <div class="player-page-header">
+                <button id="back-button" class="back-button">
+                    <img src="file:///android_asset/media/images/back.png" alt="Back" class="back-img">
+                </button>
+            </div>
+            <div class="player-page-content">
+                <img id="player-cover" class="player-cover" src="" alt="Cover">
+                <div id="player-lyrics" class="player-lyrics"></div>
+                <div class="player-controls-section">
+                    <div class="timeline-container">
+                        <span id="current-time" class="time">0:00</span>
+                        <input type="range" id="progress-bar" class="progress-bar" value="0" step="0.1">
+                        <span id="duration-time" class="time">0:00</span>
+                    </div>
+                    <div class="buttons-container">
+                        <button id="prev-button" class="control-btn">
+                            <img src="file:///android_asset/media/images/prev.png" alt="Previous">
+                        </button>
+                        <button id="play-pause-button" class="control-btn">
+                            <img id="play-pause-img" src="file:///android_asset/media/images/play.png" alt="Play">
+                        </button>
+                        <button id="next-button" class="control-btn">
+                            <img src="file:///android_asset/media/images/next.png" alt="Next">
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
     <audio id="audio-player" preload="metadata"></audio>
 
     <script>
@@ -386,12 +385,13 @@
         ];
 
         const lyricsData = {};
+        const moonCanvases = {};
+        const trackElements = {};
+        const lastMoonProgress = {};
 
         let currentTrackId = null, isPlaying = false;
 
         document.addEventListener('contextmenu', e => e.preventDefault());
-        document.addEventListener('selectstart', e => e.preventDefault());
-        document.addEventListener('dragstart', e => e.preventDefault());
 
         function notifyAndroidPlayerState(isOpen) {
             if (window.AndroidBridge && typeof window.AndroidBridge.setPlayerOpen === 'function') {
@@ -399,32 +399,71 @@
             }
         }
 
-        function createStars(n = 150) {
-            const c = document.querySelector('.stars-container');
-            if (!c) return;
-            c.innerHTML = '';
-            for (let i = 0; i < n; i++) {
-                const s = document.createElement('div');
-                s.classList.add('star');
-                s.style.left = Math.random() * 100 + '%';
-                s.style.top = Math.random() * 100 + '%';
-                let sz = 1 + Math.random() * 2;
-                s.style.width = sz + 'px';
-                s.style.height = sz + 'px';
-                s.style.animationDuration = 5 + Math.random() * 10 + 's';
-                s.style.animationDelay = Math.random() * 10 + 's';
-                c.appendChild(s);
+        // ستاره‌های بهینه‌سازی شده روی یک Canvas واحد با مصرف حداقل GPU
+        function initStarsCanvas() {
+            const canvas = document.getElementById('stars-canvas');
+            const ctx = canvas.getContext('2d');
+            let width = canvas.width = window.innerWidth;
+            let height = canvas.height = window.innerHeight;
+
+            const stars = Array.from({ length: 90 }, () => ({
+                x: Math.random() * width,
+                y: Math.random() * height,
+                r: 0.6 + Math.random() * 1.4,
+                alpha: Math.random(),
+                speed: 0.004 + Math.random() * 0.012
+            }));
+
+            window.addEventListener('resize', () => {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+            });
+
+            function animateStars() {
+                ctx.clearRect(0, 0, width, height);
+                ctx.fillStyle = '#FFFFFF';
+                for (let i = 0; i < stars.length; i++) {
+                    const s = stars[i];
+                    s.alpha += s.speed;
+                    if (s.alpha >= 1 || s.alpha <= 0.1) s.speed = -s.speed;
+                    ctx.globalAlpha = Math.max(0.1, Math.min(1, s.alpha));
+                    ctx.beginPath();
+                    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                requestAnimationFrame(animateStars);
             }
+            requestAnimationFrame(animateStars);
         }
 
-        function drawMoon(canvas, progress) {
-            const size = 88;
-            canvas.width = size;
-            canvas.height = size;
+        const craters = [
+            {x:-12,y:-8,r:3.5,depth:0.8},{x:8,y:-14,r:2.5,depth:0.6},{x:15,y:2,r:4,depth:0.9},
+            {x:-5,y:12,r:3,depth:0.7},{x:-18,y:5,r:2,depth:0.5},{x:5,y:18,r:2.5,depth:0.6},
+            {x:20,y:-5,r:2,depth:0.5},{x:-20,y:-12,r:1.8,depth:0.4},{x:0,y:0,r:4.5,depth:1.0},
+            {x:12,y:10,r:2.2,depth:0.6}
+        ];
+
+        function drawMoon(canvas, progress, force = false) {
+            const tid = canvas.getAttribute('data-id');
+            if (!force && lastMoonProgress[tid] !== undefined && Math.abs(lastMoonProgress[tid] - progress) < 0.008) {
+                return;
+            }
+            lastMoonProgress[tid] = progress;
+
+            const size = 88, center = 44, radius = 34;
             const ctx = canvas.getContext('2d');
-            const center = size / 2, radius = 36;
             ctx.clearRect(0, 0, size, size);
-            let grad = ctx.createRadialGradient(center - 6, center - 6, 5, center, center, radius);
+
+            // هاله نور دور ماه داخل خود Canvas (بدون نیاز به فیلتر سنگین CSS)
+            const glow = ctx.createRadialGradient(center, center, radius - 2, center, center, radius + 9);
+            glow.addColorStop(0, 'rgba(255, 253, 240, 0.45)');
+            glow.addColorStop(1, 'rgba(255, 253, 240, 0)');
+            ctx.beginPath();
+            ctx.arc(center, center, radius + 9, 0, Math.PI * 2);
+            ctx.fillStyle = glow;
+            ctx.fill();
+
+            const grad = ctx.createRadialGradient(center - 6, center - 6, 5, center, center, radius);
             grad.addColorStop(0, '#FFFDF5');
             grad.addColorStop(0.4, '#F5EFE6');
             grad.addColorStop(0.7, '#E8DFD0');
@@ -439,11 +478,11 @@
                 ctx.beginPath();
                 ctx.arc(center, center, radius, 0, Math.PI * 2);
                 ctx.clip();
-                let offX = 6 + 72 * progress;
-                let shGrad = ctx.createRadialGradient(center + offX - 12, center, 5, center + offX, center, radius + 5);
-                shGrad.addColorStop(0, 'rgba(70,75,85,0.98)');
-                shGrad.addColorStop(0.6, 'rgba(90,95,105,0.85)');
-                shGrad.addColorStop(1, 'rgba(110,115,125,0.3)');
+                let offX = 6 + 68 * progress;
+                let shGrad = ctx.createRadialGradient(center + offX - 12, center, 5, center + offX, center, radius + 4);
+                shGrad.addColorStop(0, 'rgba(55, 60, 70, 0.96)');
+                shGrad.addColorStop(0.65, 'rgba(75, 80, 90, 0.85)');
+                shGrad.addColorStop(1, 'rgba(100, 105, 115, 0.25)');
                 ctx.beginPath();
                 ctx.arc(center + offX, center, radius + 2, 0, Math.PI * 2);
                 ctx.fillStyle = shGrad;
@@ -451,23 +490,18 @@
                 ctx.restore();
             }
 
-            const craters = [
-                {x:-12,y:-8,r:3.5,depth:0.8},{x:8,y:-14,r:2.5,depth:0.6},{x:15,y:2,r:4,depth:0.9},
-                {x:-5,y:12,r:3,depth:0.7},{x:-18,y:5,r:2,depth:0.5},{x:5,y:18,r:2.5,depth:0.6},
-                {x:20,y:-5,r:2,depth:0.5},{x:-20,y:-12,r:1.8,depth:0.4},{x:0,y:0,r:4.5,depth:1.0},
-                {x:12,y:10,r:2.2,depth:0.6}
-            ];
-            for (let c of craters) {
+            for (let i = 0; i < craters.length; i++) {
+                const c = craters[i];
                 let x = center + c.x, y = center + c.y, r = c.r, d = c.depth;
-                ctx.beginPath(); ctx.arc(x + 1, y + 1, r, 0, Math.PI * 2); ctx.fillStyle = `rgba(0,0,0,${0.25 * d})`; ctx.fill();
-                ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = `rgba(40,35,30,${0.4 * d})`; ctx.fill();
-                ctx.beginPath(); ctx.arc(x - 1.5, y - 1.5, r * 0.3, 0, Math.PI * 2); ctx.fillStyle = `rgba(255,245,220,${0.3 * d})`; ctx.fill();
+                ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(40,35,30,${0.35 * d})`;
+                ctx.fill();
             }
         }
 
-        function updateMoonForTrack(tid, prog) {
-            let c = document.querySelector(`.moon-canvas[data-id='${tid}']`);
-            if (c) drawMoon(c, prog);
+        function updateMoonForTrack(tid, prog, force = false) {
+            const c = moonCanvases[tid];
+            if (c) drawMoon(c, prog, force);
         }
 
         const trackListDiv = document.getElementById('track-list'),
@@ -491,13 +525,16 @@
         }
 
         function updateProgress() {
-            if (audioPlayer.duration && !isNaN(audioPlayer.duration) && audioPlayer.duration > 0) {
-                let p = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+            const dur = audioPlayer.duration;
+            if (dur && !isNaN(dur) && dur > 0) {
+                const cur = audioPlayer.currentTime;
+                const ratio = cur / dur;
+                const p = ratio * 100;
                 progressBar.value = p;
-                currentTimeSpan.innerText = formatTime(audioPlayer.currentTime);
-                durationTimeSpan.innerText = formatTime(audioPlayer.duration);
+                currentTimeSpan.innerText = formatTime(cur);
+                durationTimeSpan.innerText = formatTime(dur);
                 progressBar.style.background = `linear-gradient(to right, white 0%, white ${p}%, rgba(255,255,255,0.2) ${p}%, rgba(255,255,255,0.2) 100%)`;
-                if (currentTrackId) updateMoonForTrack(currentTrackId, audioPlayer.currentTime / audioPlayer.duration);
+                if (currentTrackId) updateMoonForTrack(currentTrackId, ratio);
             } else {
                 progressBar.value = 0;
                 currentTimeSpan.innerText = '0:00';
@@ -509,36 +546,37 @@
         function seekTo(e) {
             if (audioPlayer.duration) {
                 audioPlayer.currentTime = (e.target.value / 100) * audioPlayer.duration;
-                if (currentTrackId) updateMoonForTrack(currentTrackId, audioPlayer.currentTime / audioPlayer.duration);
+                if (currentTrackId) updateMoonForTrack(currentTrackId, audioPlayer.currentTime / audioPlayer.duration, true);
             }
         }
 
         function updatePlayPauseButton() {
             const img = document.getElementById('play-pause-img');
-            if (isPlaying) {
-                img.src = "file:///android_asset/media/images/pause.png";
-                img.alt = "Pause";
-            } else {
-                img.src = "file:///android_asset/media/images/play.png";
-                img.alt = "Play";
-            }
+            img.src = isPlaying ? "file:///android_asset/media/images/pause.png" : "file:///android_asset/media/images/play.png";
+        }
+
+        function highlightActiveTrack(tid) {
+            Object.keys(trackElements).forEach(id => {
+                trackElements[id].classList.toggle('active-track', parseInt(id) === tid);
+            });
         }
 
         function switchTrack(tid) {
-            let tr = tracks.find(t => t.id === tid);
+            const tr = tracks.find(t => t.id === tid);
             if (!tr) return;
             if (currentTrackId && currentTrackId !== tid) {
-                updateMoonForTrack(currentTrackId, 0);
+                updateMoonForTrack(currentTrackId, 0, true);
             }
             currentTrackId = tid;
+            highlightActiveTrack(tid);
             audioPlayer.src = tr.mp3;
             audioPlayer.load();
-            audioPlayer.play().catch(e => console.error(e));
+            audioPlayer.play().catch(() => {});
         }
 
         function togglePlayPause() {
             if (!audioPlayer.src) return;
-            isPlaying ? audioPlayer.pause() : audioPlayer.play().catch(e => console.error(e));
+            isPlaying ? audioPlayer.pause() : audioPlayer.play().catch(() => {});
         }
 
         function playPrev() {
@@ -562,7 +600,7 @@
         }
 
         function openPlayerPage(tid) {
-            let tr = tracks.find(t => t.id === tid);
+            const tr = tracks.find(t => t.id === tid);
             if (!tr) return;
             playerCover.src = tr.cover;
             playerLyrics.innerText = lyricsData[tid] || '✨ No lyrics yet ✨';
@@ -573,51 +611,51 @@
 
             updatePlayPauseButton();
             updateProgress();
-            mainPage.classList.add('hidden');
-            playerPage.classList.remove('hidden');
+            mainPage.classList.add('page-behind');
+            playerPage.classList.add('open');
             notifyAndroidPlayerState(true);
         }
 
         function closePlayerPage() {
-            mainPage.classList.remove('hidden');
-            playerPage.classList.add('hidden');
+            playerPage.classList.remove('open');
+            mainPage.classList.remove('page-behind');
             notifyAndroidPlayerState(false);
         }
 
         function renderTracks() {
-            if (!trackListDiv) return;
             trackListDiv.innerHTML = '';
             const fallbackSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><rect width='200' height='200' fill='%23222'/><text x='50%' y='54%' font-size='64' text-anchor='middle' fill='white'>🎵</text></svg>";
 
             tracks.forEach(tr => {
-                let td = document.createElement('div');
+                const td = document.createElement('div');
                 td.className = 'track-item';
-                let cv = document.createElement('canvas');
+                trackElements[tr.id] = td;
+
+                const cv = document.createElement('canvas');
                 cv.className = 'moon-canvas';
+                cv.width = 88;
+                cv.height = 88;
                 cv.setAttribute('data-id', tr.id);
-                drawMoon(cv, 0);
+                moonCanvases[tr.id] = cv;
+                drawMoon(cv, 0, true);
+
                 cv.addEventListener('click', e => {
                     e.stopPropagation();
                     playDirectly(tr.id);
                 });
-                td.innerHTML = `<img src="${tr.cover}" class="cover-img" alt="cover" onerror="this.src='${fallbackSvg}'"><div class="track-info"><div class="track-title">${escapeHtml(tr.title)}</div><div class="track-artist">${escapeHtml(tr.artist)}</div></div>`;
+
+                td.innerHTML = `<img src="${tr.cover}" class="cover-img" alt="cover" loading="lazy" onerror="this.src='${fallbackSvg}'"><div class="track-info"><div class="track-title">${tr.title}</div><div class="track-artist">${tr.artist}</div></div>`;
                 td.appendChild(cv);
                 td.addEventListener('click', e => {
-                    if (e.target !== cv && !cv.contains(e.target)) openPlayerPage(tr.id);
+                    if (e.target !== cv) openPlayerPage(tr.id);
                 });
                 trackListDiv.appendChild(td);
             });
         }
 
-        function escapeHtml(s) {
-            if (!s) return '';
-            return s.replace(/[&<>]/g, m => (m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;')));
-        }
-
         audioPlayer.addEventListener('play', () => {
             isPlaying = true;
             updatePlayPauseButton();
-            if (currentTrackId) updateMoonForTrack(currentTrackId, audioPlayer.currentTime / (audioPlayer.duration || 1));
         });
 
         audioPlayer.addEventListener('pause', () => {
@@ -628,14 +666,12 @@
         audioPlayer.addEventListener('ended', () => {
             isPlaying = false;
             updatePlayPauseButton();
-            if (currentTrackId) updateMoonForTrack(currentTrackId, 1);
-            if (tracks.length === 0) return;
-
+            if (currentTrackId) updateMoonForTrack(currentTrackId, 1, true);
             let nid = currentTrackId + 1 > tracks.length ? 1 : currentTrackId + 1;
-            let nt = tracks.find(t => t.id === nid);
+            const nt = tracks.find(t => t.id === nid);
             if (nt) {
                 switchTrack(nid);
-                if (!playerPage.classList.contains('hidden')) {
+                if (playerPage.classList.contains('open')) {
                     playerCover.src = nt.cover;
                     playerLyrics.innerText = lyricsData[nid] || '✨ No lyrics yet ✨';
                 }
@@ -653,56 +689,34 @@
 
         const splashScreenElem = document.getElementById('splash-screen'),
               aeContainer = document.getElementById('ae-container');
-        let maxAe = 3, maxDots = 3, stepDelay = 700, cycles = 1, currentCycle = 0, currentPhase = 'ae', currentCount = 0, intervalId = null;
+        let maxAe = 3, maxDots = 3, stepDelay = 450, currentPhase = 'ae', currentCount = 0;
 
-        function clearContainer() { if (aeContainer) aeContainer.innerHTML = ''; }
-        function addAeItem() { let d = document.createElement('div'); d.classList.add('ae-item'); aeContainer.appendChild(d); }
-        function addDotItem() { let d = document.createElement('div'); d.classList.add('dot-item'); aeContainer.appendChild(d); }
-
-        function startStep() {
-            if (currentCycle >= cycles) {
-                if (splashScreenElem) {
-                    splashScreenElem.classList.add('fade-out');
-                    setTimeout(() => { splashScreenElem.style.display = 'none'; }, 1000);
-                }
-                return;
-            }
-            if (currentPhase === 'ae') {
-                if (currentCount < maxAe) {
-                    addAeItem();
+        function startSplashAnimation() {
+            const intervalId = setInterval(() => {
+                if (currentPhase === 'ae') {
+                    let d = document.createElement('div');
+                    d.className = 'ae-item';
+                    aeContainer.appendChild(d);
                     currentCount++;
                     if (currentCount === maxAe) { currentPhase = 'dot'; currentCount = 0; }
-                }
-            } else if (currentPhase === 'dot') {
-                if (currentCount < maxDots) {
-                    addDotItem();
+                } else {
+                    let d = document.createElement('div');
+                    d.className = 'dot-item';
+                    aeContainer.appendChild(d);
                     currentCount++;
                     if (currentCount === maxDots) {
                         clearInterval(intervalId);
-                        intervalId = null;
                         setTimeout(() => {
-                            clearContainer();
-                            currentCycle++;
-                            currentPhase = 'ae';
-                            currentCount = 0;
-                            intervalId = setInterval(() => startStep(), stepDelay);
-                        }, 500);
+                            splashScreenElem.classList.add('fade-out');
+                            setTimeout(() => splashScreenElem.remove(), 650);
+                        }, 350);
                     }
                 }
-            }
-        }
-
-        function startSplashAnimation() {
-            clearContainer();
-            currentCycle = 0;
-            currentPhase = 'ae';
-            currentCount = 0;
-            if (intervalId) clearInterval(intervalId);
-            intervalId = setInterval(() => startStep(), stepDelay);
+            }, stepDelay);
         }
 
         window.addEventListener('DOMContentLoaded', () => {
-            createStars(180);
+            initStarsCanvas();
             startSplashAnimation();
             renderTracks();
         });
