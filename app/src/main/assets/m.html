@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Music Love Box</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #000000;
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', 'Poppins', system-ui, sans-serif;
+            padding: env(safe-area-inset-top, 20px) 20px env(safe-area-inset-bottom, 20px) 20px;
+            position: relative;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            overflow-y: auto;
+        }
+        body::-webkit-scrollbar, html::-webkit-scrollbar, *::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            background: transparent !important;
+        }
+        .player-page, .track-list, .player-lyrics, .ae-container, .ae-loader {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .stars-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .star {
+            position: absolute;
+            background-color: white;
+            border-radius: 50%;
+            width: 2px;
+            height: 2px;
+            opacity: 0;
+            animation: randomTwinkle infinite ease-in-out;
+        }
+        @keyframes randomTwinkle {
+            0%, 85% { opacity: 0; transform: scale(0.8); }
+            90% { opacity: 1; transform: scale(1.2); }
+            95% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.8); }
+        }
+        .main-header, .main-footer {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 0;
+            text-align: center;
+            width: 100%;
+        }
+        .main-header { margin-bottom: 15px; }
+        .main-footer { margin-top: 15px; }
+        .header-footer-image {
+            width: 300px;
+            max-width: 85%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+        .main-page, .player-page {
+            transition: opacity 0.3s ease;
+            width: 100%;
+            max-width: 580px;
+            z-index: 2;
+        }
+        .main-page { display: block; }
+        .player-page {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 580px;
+            height: 100vh;
+            height: 100dvh;
+            overflow-y: auto;
+            background: transparent;
+            padding: env(safe-area-inset-top, 20px) 20px env(safe-area-inset-bottom, 20px) 20px;
+            z-index: 10;
+        }
+        .hidden { display: none !important; }
+        .player-container {
+            background: transparent;
+            padding: 0;
+            width: 100%;
+        }
+        .track-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            padding-left: 5px;
+        }
+        .track-item {
+            background: rgba(0, 0, 0, 0.55);
+            border-radius: 32px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 8px 15px 8px 10px;
+            transition: 0.2s;
+            border: 1px solid rgba(255,255,255,0.15);
+            backdrop-filter: blur(8px);
+            direction: ltr;
+            text-align: left;
+            cursor: pointer;
+        }
+        .track-item:active {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(0.99);
+        }
+        .cover-img {
+            width: 55px;
+            height: 55px;
+            border-radius: 18px;
+            object-fit: cover;
+            box-shadow: 0 5px 12px rgba(0,0,0,0.3);
+            order: 1;
+        }
+        .track-info { flex: 1; order: 2; }
+        .track-title {
+            font-weight: 600;
+            color: #ffffff;
+            font-size: 1rem;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+            text-align: left;
+        }
+        .track-artist {
+            font-size: 0.75rem;
+            color: #e0e0ff;
+            text-align: left;
+        }
+        .moon-canvas {
+            width: 55px;
+            height: 55px;
+            cursor: pointer;
+            border-radius: 50%;
+            order: 3;
+            transition: 0.2s;
+            background: transparent;
+            filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.6)) drop-shadow(0 0 12px rgba(255, 255, 255, 0.3));
+        }
+        .player-page-header {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            margin-bottom: 20px;
+            direction: ltr;
+        }
+        .back-button {
+            background: transparent;
+            border: none;
+            width: 44px;
+            height: 44px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+        .back-img {
+            width: 30px;
+            height: 30px;
+            display: block;
+        }
+        .player-page-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        .player-cover {
+            width: 200px;
+            height: 200px;
+            border-radius: 30px;
+            object-fit: cover;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+        }
+        .player-lyrics {
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(12px);
+            border-radius: 28px;
+            padding: 20px;
+            width: 100%;
+            max-height: 300px;
+            overflow-y: auto;
+            color: #eee;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            text-align: center;
+            white-space: pre-wrap;
+            font-family: monospace;
+            mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
+            -webkit-mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
+        }
+        .player-controls-section {
+            width: 100%;
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .timeline-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            direction: ltr;
+        }
+        .time {
+            color: white;
+            font-size: 0.8rem;
+            font-family: monospace;
+            min-width: 40px;
+            text-align: center;
+        }
+        .progress-bar {
+            flex: 1;
+            height: 6px;
+            -webkit-appearance: none;
+            background: rgba(255,255,255,0.2);
+            border-radius: 6px;
+            outline: none;
+            cursor: pointer;
+        }
+        .progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            box-shadow: 0 0 6px rgba(255,255,255,0.8);
+        }
+        .buttons-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 35px;
+            margin: 10px 0;
+        }
+        .control-btn {
+            background: transparent;
+            border: none;
+            padding: 0;
+            margin: 0;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.15s ease;
+        }
+        .control-btn:active { transform: scale(0.92); }
+        .control-btn img {
+            width: 42px;
+            height: 42px;
+            display: block;
+        }
+        button, .control-btn, .back-button, .track-item {
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
+        }
+        .splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 1s ease-out;
+            opacity: 1;
+        }
+        .splash-screen.fade-out { opacity: 0; }
+        .ae-loader { text-align: center; direction: ltr; }
+        .ae-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1px;
+        }
+        .ae-item {
+            display: inline-block;
+            width: 55px;
+            height: 55px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-image: url('file:///android_asset/media/images/ae.png');
+            margin-right: -12px;
+        }
+        .dot-item {
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 0 8px rgba(255,255,255,0.8);
+            margin-left: 5px;
+        }
+        .dot-item:not(:last-child) { margin-right: 8px; }
+    </style>
+</head>
+<body>
+    <div id="splash-screen" class="splash-screen">
+        <div class="ae-loader">
+            <div id="ae-container" class="ae-container"></div>
+        </div>
+    </div>
+    <div class="stars-container"></div>
+    <div id="main-page" class="main-page">
+        <div class="main-header">
+            <img src="file:///android_asset/media/images/header.png" alt="My Love's Favorites" class="header-footer-image">
+        </div>
+        <div class="player-container">
+            <div id="track-list" class="track-list"></div>
+        </div>
+        <div class="main-footer">
+            <img src="file:///android_asset/media/images/footer.png" alt="Footer" class="header-footer-image">
+        </div>
+    </div>
+    <div id="player-page" class="player-page hidden">
+        <div class="player-page-header">
+            <button id="back-button" class="back-button">
+                <img src="file:///android_asset/media/images/back.png" alt="Back" class="back-img">
+            </button>
+        </div>
+        <div class="player-page-content">
+            <img id="player-cover" class="player-cover" src="" alt="Cover">
+            <div id="player-lyrics" class="player-lyrics"></div>
+            <div class="player-controls-section">
+                <div class="timeline-container">
+                    <span id="current-time" class="time">0:00</span>
+                    <input type="range" id="progress-bar" class="progress-bar" value="0" step="0.01">
+                    <span id="duration-time" class="time">0:00</span>
+                </div>
+                <div class="buttons-container">
+                    <button id="prev-button" class="control-btn">
+                        <img src="file:///android_asset/media/images/prev.png" alt="Previous">
+                    </button>
+                    <button id="play-pause-button" class="control-btn play-btn">
+                        <img id="play-pause-img" src="file:///android_asset/media/images/play.png" alt="Play">
+                    </button>
+                    <button id="next-button" class="control-btn">
+                        <img src="file:///android_asset/media/images/next.png" alt="Next">
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <audio id="audio-player" preload="metadata"></audio>
+
+    <script>
+        const tracks = [
+            { id: 1, title: "Sailor song", artist: "Gigi Perez", cover: "file:///android_asset/media/images/cover1.jpg", mp3: "file:///android_asset/media/audios/song1.mp3" },
+            { id: 2, title: "Falling down", artist: "Lil Peep & XXXTENTACION", cover: "file:///android_asset/media/images/cover2.jpg", mp3: "file:///android_asset/media/audios/song2.mp3" },
+            { id: 3, title: "Pain = bestfriend", artist: "XXXTENTACION", cover: "file:///android_asset/media/images/cover3.jpg", mp3: "file:///android_asset/media/audios/song3.mp3" },
+            { id: 4, title: "Dracula", artist: "Tame Impala", cover: "file:///android_asset/media/images/cover4.jpg", mp3: "file:///android_asset/media/audios/song4.mp3" },
+            { id: 5, title: "Cure", artist: "Passion Mango", cover: "file:///android_asset/media/images/cover5.jpg", mp3: "file:///android_asset/media/audios/song5.mp3" },
+            { id: 6, title: "Scars", artist: "Novulent", cover: "file:///android_asset/media/images/cover6.jpg", mp3: "file:///android_asset/media/audios/song6.mp3" },
+            { id: 7, title: "Swing Lynn", artist: "Twin Cabins", cover: "file:///android_asset/media/images/cover7.jpg", mp3: "file:///android_asset/media/audios/song7.mp3" },
+            { id: 8, title: "Raindrops", artist: "Shamrain", cover: "file:///android_asset/media/images/cover8.jpg", mp3: "file:///android_asset/media/audios/song8.mp3" },
+            { id: 9, title: "Heat", artist: "Cloaks", cover: "file:///android_asset/media/images/cover9.jpg", mp3: "file:///android_asset/media/audios/song9.mp3" },
+            { id: 10, title: "Lovers Rock", artist: "TV Girl", cover: "file:///android_asset/media/images/cover10.jpg", mp3: "file:///android_asset/media/audios/song10.mp3" }
+        ];
+
+        const lyricsData = {};
+
+        let currentTrackId = null, isPlaying = false;
+
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('selectstart', e => e.preventDefault());
+        document.addEventListener('dragstart', e => e.preventDefault());
+
+        function notifyAndroidPlayerState(isOpen) {
+            if (window.AndroidBridge && typeof window.AndroidBridge.setPlayerOpen === 'function') {
+                window.AndroidBridge.setPlayerOpen(isOpen);
+            }
+        }
+
+        function createStars(n = 150) {
+            const c = document.querySelector('.stars-container');
+            if (!c) return;
+            c.innerHTML = '';
+            for (let i = 0; i < n; i++) {
+                const s = document.createElement('div');
+                s.classList.add('star');
+                s.style.left = Math.random() * 100 + '%';
+                s.style.top = Math.random() * 100 + '%';
+                let sz = 1 + Math.random() * 2;
+                s.style.width = sz + 'px';
+                s.style.height = sz + 'px';
+                s.style.animationDuration = 5 + Math.random() * 10 + 's';
+                s.style.animationDelay = Math.random() * 10 + 's';
+                c.appendChild(s);
+            }
+        }
+
+        function drawMoon(canvas, progress) {
+            const size = 88;
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            const center = size / 2, radius = 36;
+            ctx.clearRect(0, 0, size, size);
+            let grad = ctx.createRadialGradient(center - 6, center - 6, 5, center, center, radius);
+            grad.addColorStop(0, '#FFFDF5');
+            grad.addColorStop(0.4, '#F5EFE6');
+            grad.addColorStop(0.7, '#E8DFD0');
+            grad.addColorStop(1, '#D0C8B8');
+            ctx.beginPath();
+            ctx.arc(center, center, radius, 0, Math.PI * 2);
+            ctx.fillStyle = grad;
+            ctx.fill();
+
+            if (progress < 1) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(center, center, radius, 0, Math.PI * 2);
+                ctx.clip();
+                let offX = 6 + 72 * progress;
+                let shGrad = ctx.createRadialGradient(center + offX - 12, center, 5, center + offX, center, radius + 5);
+                shGrad.addColorStop(0, 'rgba(70,75,85,0.98)');
+                shGrad.addColorStop(0.6, 'rgba(90,95,105,0.85)');
+                shGrad.addColorStop(1, 'rgba(110,115,125,0.3)');
+                ctx.beginPath();
+                ctx.arc(center + offX, center, radius + 2, 0, Math.PI * 2);
+                ctx.fillStyle = shGrad;
+                ctx.fill();
+                ctx.restore();
+            }
+
+            const craters = [
+                {x:-12,y:-8,r:3.5,depth:0.8},{x:8,y:-14,r:2.5,depth:0.6},{x:15,y:2,r:4,depth:0.9},
+                {x:-5,y:12,r:3,depth:0.7},{x:-18,y:5,r:2,depth:0.5},{x:5,y:18,r:2.5,depth:0.6},
+                {x:20,y:-5,r:2,depth:0.5},{x:-20,y:-12,r:1.8,depth:0.4},{x:0,y:0,r:4.5,depth:1.0},
+                {x:12,y:10,r:2.2,depth:0.6}
+            ];
+            for (let c of craters) {
+                let x = center + c.x, y = center + c.y, r = c.r, d = c.depth;
+                ctx.beginPath(); ctx.arc(x + 1, y + 1, r, 0, Math.PI * 2); ctx.fillStyle = `rgba(0,0,0,${0.25 * d})`; ctx.fill();
+                ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = `rgba(40,35,30,${0.4 * d})`; ctx.fill();
+                ctx.beginPath(); ctx.arc(x - 1.5, y - 1.5, r * 0.3, 0, Math.PI * 2); ctx.fillStyle = `rgba(255,245,220,${0.3 * d})`; ctx.fill();
+            }
+        }
+
+        function updateMoonForTrack(tid, prog) {
+            let c = document.querySelector(`.moon-canvas[data-id='${tid}']`);
+            if (c) drawMoon(c, prog);
+        }
+
+        const trackListDiv = document.getElementById('track-list'),
+              audioPlayer = document.getElementById('audio-player'),
+              mainPage = document.getElementById('main-page'),
+              playerPage = document.getElementById('player-page'),
+              backButton = document.getElementById('back-button'),
+              playerCover = document.getElementById('player-cover'),
+              playerLyrics = document.getElementById('player-lyrics'),
+              playPauseBtn = document.getElementById('play-pause-button'),
+              prevBtn = document.getElementById('prev-button'),
+              nextBtn = document.getElementById('next-button'),
+              progressBar = document.getElementById('progress-bar'),
+              currentTimeSpan = document.getElementById('current-time'),
+              durationTimeSpan = document.getElementById('duration-time');
+
+        function formatTime(s) {
+            if (isNaN(s)) return '0:00';
+            let m = Math.floor(s / 60), sec = Math.floor(s % 60);
+            return m + ':' + (sec < 10 ? '0' : '') + sec;
+        }
+
+        function updateProgress() {
+            if (audioPlayer.duration && !isNaN(audioPlayer.duration) && audioPlayer.duration > 0) {
+                let p = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+                progressBar.value = p;
+                currentTimeSpan.innerText = formatTime(audioPlayer.currentTime);
+                durationTimeSpan.innerText = formatTime(audioPlayer.duration);
+                progressBar.style.background = `linear-gradient(to right, white 0%, white ${p}%, rgba(255,255,255,0.2) ${p}%, rgba(255,255,255,0.2) 100%)`;
+                if (currentTrackId) updateMoonForTrack(currentTrackId, audioPlayer.currentTime / audioPlayer.duration);
+            } else {
+                progressBar.value = 0;
+                currentTimeSpan.innerText = '0:00';
+                durationTimeSpan.innerText = '0:00';
+                progressBar.style.background = 'rgba(255,255,255,0.2)';
+            }
+        }
+
+        function seekTo(e) {
+            if (audioPlayer.duration) {
+                audioPlayer.currentTime = (e.target.value / 100) * audioPlayer.duration;
+                if (currentTrackId) updateMoonForTrack(currentTrackId, audioPlayer.currentTime / audioPlayer.duration);
+            }
+        }
+
+        function updatePlayPauseButton() {
+            const img = document.getElementById('play-pause-img');
+            if (isPlaying) {
+                img.src = "file:///android_asset/media/images/pause.png";
+                img.alt = "Pause";
+            } else {
+                img.src = "file:///android_asset/media/images/play.png";
+                img.alt = "Play";
+            }
+        }
+
+        function switchTrack(tid) {
+            let tr = tracks.find(t => t.id === tid);
+            if (!tr) return;
+            if (currentTrackId && currentTrackId !== tid) {
+                updateMoonForTrack(currentTrackId, 0);
+            }
+            currentTrackId = tid;
+            audioPlayer.src = tr.mp3;
+            audioPlayer.load();
+            audioPlayer.play().catch(e => console.error(e));
+        }
+
+        function togglePlayPause() {
+            if (!audioPlayer.src) return;
+            isPlaying ? audioPlayer.pause() : audioPlayer.play().catch(e => console.error(e));
+        }
+
+        function playPrev() {
+            if (!currentTrackId || tracks.length === 0) return;
+            let nid = currentTrackId - 1 < 1 ? tracks.length : currentTrackId - 1;
+            openPlayerPage(nid);
+        }
+
+        function playNext() {
+            if (!currentTrackId || tracks.length === 0) return;
+            let nid = currentTrackId + 1 > tracks.length ? 1 : currentTrackId + 1;
+            openPlayerPage(nid);
+        }
+
+        function playDirectly(tid) {
+            if (currentTrackId === tid) {
+                togglePlayPause();
+            } else {
+                switchTrack(tid);
+            }
+        }
+
+        function openPlayerPage(tid) {
+            let tr = tracks.find(t => t.id === tid);
+            if (!tr) return;
+            playerCover.src = tr.cover;
+            playerLyrics.innerText = lyricsData[tid] || '✨ No lyrics yet ✨';
+
+            if (currentTrackId !== tid) {
+                switchTrack(tid);
+            }
+
+            updatePlayPauseButton();
+            updateProgress();
+            mainPage.classList.add('hidden');
+            playerPage.classList.remove('hidden');
+            notifyAndroidPlayerState(true);
+        }
+
+        function closePlayerPage() {
+            mainPage.classList.remove('hidden');
+            playerPage.classList.add('hidden');
+            notifyAndroidPlayerState(false);
+        }
+
+        function renderTracks() {
+            if (!trackListDiv) return;
+            trackListDiv.innerHTML = '';
+            const fallbackSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><rect width='200' height='200' fill='%23222'/><text x='50%' y='54%' font-size='64' text-anchor='middle' fill='white'>🎵</text></svg>";
+
+            tracks.forEach(tr => {
+                let td = document.createElement('div');
+                td.className = 'track-item';
+                let cv = document.createElement('canvas');
+                cv.className = 'moon-canvas';
+                cv.setAttribute('data-id', tr.id);
+                drawMoon(cv, 0);
+                cv.addEventListener('click', e => {
+                    e.stopPropagation();
+                    playDirectly(tr.id);
+                });
+                td.innerHTML = `<img src="${tr.cover}" class="cover-img" alt="cover" onerror="this.src='${fallbackSvg}'"><div class="track-info"><div class="track-title">${escapeHtml(tr.title)}</div><div class="track-artist">${escapeHtml(tr.artist)}</div></div>`;
+                td.appendChild(cv);
+                td.addEventListener('click', e => {
+                    if (e.target !== cv && !cv.contains(e.target)) openPlayerPage(tr.id);
+                });
+                trackListDiv.appendChild(td);
+            });
+        }
+
+        function escapeHtml(s) {
+            if (!s) return '';
+            return s.replace(/[&<>]/g, m => (m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;')));
+        }
+
+        audioPlayer.addEventListener('play', () => {
+            isPlaying = true;
+            updatePlayPauseButton();
+            if (currentTrackId) updateMoonForTrack(currentTrackId, audioPlayer.currentTime / (audioPlayer.duration || 1));
+        });
+
+        audioPlayer.addEventListener('pause', () => {
+            isPlaying = false;
+            updatePlayPauseButton();
+        });
+
+        audioPlayer.addEventListener('ended', () => {
+            isPlaying = false;
+            updatePlayPauseButton();
+            if (currentTrackId) updateMoonForTrack(currentTrackId, 1);
+            if (tracks.length === 0) return;
+
+            let nid = currentTrackId + 1 > tracks.length ? 1 : currentTrackId + 1;
+            let nt = tracks.find(t => t.id === nid);
+            if (nt) {
+                switchTrack(nid);
+                if (!playerPage.classList.contains('hidden')) {
+                    playerCover.src = nt.cover;
+                    playerLyrics.innerText = lyricsData[nid] || '✨ No lyrics yet ✨';
+                }
+                updateProgress();
+            }
+        });
+
+        audioPlayer.addEventListener('timeupdate', updateProgress);
+        audioPlayer.addEventListener('loadedmetadata', updateProgress);
+        progressBar.addEventListener('input', seekTo);
+        playPauseBtn.addEventListener('click', togglePlayPause);
+        prevBtn.addEventListener('click', playPrev);
+        nextBtn.addEventListener('click', playNext);
+        backButton.addEventListener('click', closePlayerPage);
+
+        const splashScreenElem = document.getElementById('splash-screen'),
+              aeContainer = document.getElementById('ae-container');
+        let maxAe = 3, maxDots = 3, stepDelay = 700, cycles = 1, currentCycle = 0, currentPhase = 'ae', currentCount = 0, intervalId = null;
+
+        function clearContainer() { if (aeContainer) aeContainer.innerHTML = ''; }
+        function addAeItem() { let d = document.createElement('div'); d.classList.add('ae-item'); aeContainer.appendChild(d); }
+        function addDotItem() { let d = document.createElement('div'); d.classList.add('dot-item'); aeContainer.appendChild(d); }
+
+        function startStep() {
+            if (currentCycle >= cycles) {
+                if (splashScreenElem) {
+                    splashScreenElem.classList.add('fade-out');
+                    setTimeout(() => { splashScreenElem.style.display = 'none'; }, 1000);
+                }
+                return;
+            }
+            if (currentPhase === 'ae') {
+                if (currentCount < maxAe) {
+                    addAeItem();
+                    currentCount++;
+                    if (currentCount === maxAe) { currentPhase = 'dot'; currentCount = 0; }
+                }
+            } else if (currentPhase === 'dot') {
+                if (currentCount < maxDots) {
+                    addDotItem();
+                    currentCount++;
+                    if (currentCount === maxDots) {
+                        clearInterval(intervalId);
+                        intervalId = null;
+                        setTimeout(() => {
+                            clearContainer();
+                            currentCycle++;
+                            currentPhase = 'ae';
+                            currentCount = 0;
+                            intervalId = setInterval(() => startStep(), stepDelay);
+                        }, 500);
+                    }
+                }
+            }
+        }
+
+        function startSplashAnimation() {
+            clearContainer();
+            currentCycle = 0;
+            currentPhase = 'ae';
+            currentCount = 0;
+            if (intervalId) clearInterval(intervalId);
+            intervalId = setInterval(() => startStep(), stepDelay);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            createStars(180);
+            startSplashAnimation();
+            renderTracks();
+        });
+    </script>
+</body>
+</html>
