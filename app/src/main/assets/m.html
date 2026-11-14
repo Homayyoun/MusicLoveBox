@@ -17,7 +17,7 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            font-family: 'Segoe UI', 'Poppins', system-ui, sans-serif;
+            font-family: 'Segoe UI', 'Poppins', 'Tahoma', system-ui, sans-serif;
             user-select: none;
             -webkit-user-select: none;
             -webkit-touch-callout: none;
@@ -165,7 +165,7 @@
             display: flex;
             align-items: center;
             justify-content: flex-start;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
         .back-button {
             background: transparent;
@@ -187,23 +187,146 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 18px;
+            gap: 16px;
+        }
+
+        /* ====== استایل گردش سه‌بعدی فوق‌روان کاور (3D Flip Card) ====== */
+        .cover-scene {
+            width: 220px;
+            height: 220px;
+            perspective: 1200px;
+            -webkit-perspective: 1200px;
+            cursor: pointer;
+            position: relative;
+            margin: 4px 0;
+        }
+        .cover-card-3d {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            -webkit-transform-style: preserve-3d;
+            transition: transform 0.85s cubic-bezier(0.2, 0.85, 0.25, 1.08);
+            will-change: transform;
+            border-radius: 30px;
+        }
+        .cover-card-3d.is-flipped {
+            transform: rotateY(180deg) scale(1.03);
+        }
+        .cover-face {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 30px;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            overflow: hidden;
+            box-shadow: 0 14px 32px rgba(0, 0, 0, 0.75);
+        }
+        .cover-face-front {
+            background: #111;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+        }
+        /* افکت بازتاب نور هنگام چرخش کاور */
+        .cover-face::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -60%;
+            width: 55%;
+            height: 200%;
+            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.18) 50%, rgba(255,255,255,0) 100%);
+            transform: rotate(25deg) translateX(-180%);
+            transition: transform 0.85s cubic-bezier(0.22, 1, 0.36, 1);
+            pointer-events: none;
+        }
+        .cover-card-3d.is-flipped .cover-face-front::after {
+            transform: rotate(25deg) translateX(420%);
+        }
+        .cover-card-3d:not(.is-flipped) .cover-face-back::after {
+            transform: rotate(25deg) translateX(420%);
         }
         .player-cover {
-            width: 210px;
-            height: 210px;
-            border-radius: 30px;
+            width: 100%;
+            height: 100%;
             object-fit: cover;
-            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.65);
+            display: block;
         }
-        /* باکس لیریک بدون بکگراند و بدون حاشیه با قابلیت حرکت خودکار نرم */
+        /* بج کوچک روی کاور برای راهنمایی لمس */
+        .flip-hint-badge {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.65);
+            border: 1px solid rgba(255, 245, 220, 0.4);
+            color: #fff8e7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.82rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+            animation: softPulse 2.5s infinite ease-in-out;
+            pointer-events: none;
+        }
+        @keyframes softPulse {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.12); opacity: 1; }
+        }
+        /* طراحی پشت کاور (کارت یادداشت عاشقانه) */
+        .cover-face-back {
+            transform: rotateY(180deg);
+            background: radial-gradient(circle at 20% 20%, #1c1829 0%, #09080f 65%, #000000 100%);
+            border: 1px solid rgba(255, 235, 200, 0.32);
+            box-shadow: 0 14px 32px rgba(0, 0, 0, 0.85), inset 0 0 22px rgba(255, 230, 190, 0.07);
+            padding: 18px 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            text-align: center;
+        }
+        .note-header-icon {
+            color: #fff2cc;
+            font-size: 1.05rem;
+            letter-spacing: 3px;
+            opacity: 0.9;
+            text-shadow: 0 0 8px rgba(255, 240, 200, 0.5);
+        }
+        .note-body-text {
+            color: #ffffff;
+            font-size: 0.86rem;
+            line-height: 1.65;
+            max-height: 135px;
+            overflow-y: auto;
+            padding: 2px 4px;
+            font-weight: 400;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .note-footer-sign {
+            font-size: 0.7rem;
+            color: rgba(255, 235, 205, 0.65);
+            letter-spacing: 1px;
+            border-top: 1px solid rgba(255, 255, 255, 0.12);
+            padding-top: 6px;
+            width: 75%;
+        }
+
+        /* باکس لیریک بدون بکگراند و بدون حاشیه */
         .player-lyrics {
             background: transparent;
             border: none;
             box-shadow: none;
             padding: 80px 16px;
             width: 100%;
-            height: 250px;
+            height: 245px;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
             color: rgba(255, 255, 255, 0.55);
@@ -229,7 +352,7 @@
         }
         .player-controls-section {
             width: 100%;
-            margin-top: 8px;
+            margin-top: 6px;
             display: flex;
             flex-direction: column;
             gap: 15px;
@@ -367,7 +490,21 @@
                 </button>
             </div>
             <div class="player-page-content">
-                <img id="player-cover" class="player-cover" src="" alt="Cover">
+                <!-- کارت سه‌بعدی کاور آهنگ -->
+                <div id="cover-scene" class="cover-scene">
+                    <div id="cover-card-3d" class="cover-card-3d">
+                        <div class="cover-face cover-face-front">
+                            <img id="player-cover" class="player-cover" src="" alt="Cover">
+                            <div class="flip-hint-badge">♡</div>
+                        </div>
+                        <div class="cover-face cover-face-back">
+                            <div class="note-header-icon">✦ ☽ ✦</div>
+                            <div id="cover-love-note" class="note-body-text" dir="auto"></div>
+                            <div class="note-footer-sign">Forever Yours ♡</div>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="player-lyrics" class="player-lyrics"></div>
                 <div class="player-controls-section">
                     <div class="timeline-container">
@@ -394,27 +531,44 @@
     <audio id="audio-player" preload="metadata"></audio>
 
     <script>
-        const tracks = [
-            { id: 1, title: "Sailor song", artist: "Gigi Perez", cover: "file:///android_asset/media/images/cover1.jpg", mp3: "file:///android_asset/media/audios/song1.mp3" },
-            { id: 2, title: "Falling down", artist: "Lil Peep & XXXTENTACION", cover: "file:///android_asset/media/images/cover2.jpg", mp3: "file:///android_asset/media/audios/song2.mp3" },
-            { id: 3, title: "Pain = bestfriend", artist: "XXXTENTACION", cover: "file:///android_asset/media/images/cover3.jpg", mp3: "file:///android_asset/media/audios/song3.mp3" },
-            { id: 4, title: "Dracula", artist: "Tame Impala", cover: "file:///android_asset/media/images/cover4.jpg", mp3: "file:///android_asset/media/audios/song4.mp3" },
-            { id: 5, title: "Cure", artist: "Passion Mango", cover: "file:///android_asset/media/images/cover5.jpg", mp3: "file:///android_asset/media/audios/song5.mp3" },
-            { id: 6, title: "Scars", artist: "Novulent", cover: "file:///android_asset/media/images/cover6.jpg", mp3: "file:///android_asset/media/audios/song6.mp3" },
-            { id: 7, title: "Swing Lynn", artist: "Twin Cabins", cover: "file:///android_asset/media/images/cover7.jpg", mp3: "file:///android_asset/media/audios/song7.mp3" },
-            { id: 8, title: "Raindrops", artist: "Shamrain", cover: "file:///android_asset/media/images/cover8.jpg", mp3: "file:///android_asset/media/audios/song8.mp3" },
-            { id: 9, title: "Heat", artist: "Cloaks", cover: "file:///android_asset/media/images/cover9.jpg", mp3: "file:///android_asset/media/audios/song9.mp3" },
-            { id: 10, title: "Lovers Rock", artist: "TV Girl", cover: "file:///android_asset/media/images/cover10.jpg", mp3: "file:///android_asset/media/audios/song10.mp3" }
-        ];
+        // لیست پیش‌فرض برای ۱۰ آهنگ اصلی (اگر آهنگ جدیدی در پوشه audios بریزید خودکار به این لیست اضافه می‌شود)
+        const presetTracks = {
+            "song1.mp3": { title: "Sailor song", artist: "Gigi Perez", cover: "file:///android_asset/media/images/cover1.jpg" },
+            "song2.mp3": { title: "Falling down", artist: "Lil Peep & XXXTENTACION", cover: "file:///android_asset/media/images/cover2.jpg" },
+            "song3.mp3": { title: "Pain = bestfriend", artist: "XXXTENTACION", cover: "file:///android_asset/media/images/cover3.jpg" },
+            "song4.mp3": { title: "Dracula", artist: "Tame Impala", cover: "file:///android_asset/media/images/cover4.jpg" },
+            "song5.mp3": { title: "Cure", artist: "Passion Mango", cover: "file:///android_asset/media/images/cover5.jpg" },
+            "song6.mp3": { title: "Scars", artist: "Novulent", cover: "file:///android_asset/media/images/cover6.jpg" },
+            "song7.mp3": { title: "Swing Lynn", artist: "Twin Cabins", cover: "file:///android_asset/media/images/cover7.jpg" },
+            "song8.mp3": { title: "Raindrops", artist: "Shamrain", cover: "file:///android_asset/media/images/cover8.jpg" },
+            "song9.mp3": { title: "Heat", artist: "Cloaks", cover: "file:///android_asset/media/images/cover9.jpg" },
+            "song10.mp3": { title: "Lovers Rock", artist: "TV Girl", cover: "file:///android_asset/media/images/cover10.jpg" }
+        };
 
+        // متن‌های عاشقانه پشت کاور (می‌توانید برای هر آهنگ متن دلخواه فارسی یا انگلیسی بنویسید)
+        const loveNotes = {
+            "song1.mp3": "هر بار که این آهنگ پلی میشه، فقط تصویر چشمای تو میاد جلوی چشمم... تو قشنگ‌ترین اتفاق زندگی منی ♡",
+            "song2.mp3": "حتی توی شلوغ‌ترین و تاریک‌ترین روزا، بودنِ تو کنارم همه‌چیز رو آروم می‌کنه.",
+            "song3.mp3": "تو همون کسی هستی که بدون هیچ حرفی، تمام حالِ دلم رو می‌فهمه.",
+            "song4.mp3": "کنار تو گذر زمان معنی نداره؛ کاش همه شب‌هامون به قشنگیِ حسِ این آهنگ باشه.",
+            "song5.mp3": "تو تنها درمان و آرامشِ قلب منی... صدات، خنده‌هات و نگاهت دنیای منه.",
+            "song6.mp3": "با تو تمام روزای سخت فراموش میشن و فقط خاطرات قشنگمون جا می‌مونه.",
+            "song7.mp3": "وقتی دستای تو رو می‌گیرم، انگار از کل زمین جدا میشم و روی ابرا راه میرم.",
+            "song8.mp3": "صدای بارون و این ملودی، منو یادِ قشنگ‌ترین لحظه‌هایی می‌ندازه که به تو فکر می‌کنم.",
+            "song9.mp3": "گرمای وجودت، قشنگ‌ترین حسِ امنیتی هست که توی تمام عمرم تجربه کردم.",
+            "song10.mp3": "این آهنگ، موسیقیِ متنِ عشقِ ماست... خیلی دوستت دارم، بیشتر از هر چیزی توی این دنیا.",
+            "default": "این آهنگ رو با تمام عشقم برای تو گذاشتم تا هر وقت گوش میدی یادت بیفته چقدر برام عزیزی ♡"
+        };
+
+        let tracks = [];
         const lyricsCache = {};
         const moonCanvases = {};
         const trackElements = {};
         const lastMoonProgress = {};
 
         let currentTrackId = null, isPlaying = false;
-        let currentLyricsList = []; // آرایه خطوط لیریک آهنگ فعلی
-        let isSyncedLyrics = false; // آیا لیریک دارای زمان‌بندی LRC است؟
+        let currentLyricsList = [];
+        let isSyncedLyrics = false;
         let activeLyricIndex = -1;
         let userScrolling = false;
         let userScrollTimeout = null;
@@ -424,6 +578,38 @@
         function notifyAndroidPlayerState(isOpen) {
             if (window.AndroidBridge && typeof window.AndroidBridge.setPlayerOpen === 'function') {
                 window.AndroidBridge.setPlayerOpen(isOpen);
+            }
+        }
+
+        // بارگذاری خودکار تمام آهنگ‌های موجود در پوشه audios
+        function loadAllTracks() {
+            if (window.AndroidBridge && typeof window.AndroidBridge.getTracksJson === 'function') {
+                try {
+                    const rawList = JSON.parse(window.AndroidBridge.getTracksJson());
+                    tracks = rawList.map(item => {
+                        const preset = presetTracks[item.fileName];
+                        return {
+                            id: item.id,
+                            fileName: item.fileName,
+                            title: preset ? preset.title : item.title,
+                            artist: preset ? preset.artist : item.artist,
+                            cover: preset ? preset.cover : item.cover,
+                            mp3: item.mp3
+                        };
+                    });
+                } catch (e) {
+                    tracks = [];
+                }
+            }
+            if (tracks.length === 0) {
+                tracks = Object.keys(presetTracks).map((file, idx) => ({
+                    id: idx + 1,
+                    fileName: file,
+                    title: presetTracks[file].title,
+                    artist: presetTracks[file].artist,
+                    cover: presetTracks[file].cover,
+                    mp3: "file:///android_asset/media/audios/" + file
+                }));
             }
         }
 
@@ -536,6 +722,9 @@
               playerPage = document.getElementById('player-page'),
               backButton = document.getElementById('back-button'),
               playerCover = document.getElementById('player-cover'),
+              coverScene = document.getElementById('cover-scene'),
+              coverCard3d = document.getElementById('cover-card-3d'),
+              coverLoveNote = document.getElementById('cover-love-note'),
               playerLyrics = document.getElementById('player-lyrics'),
               playPauseBtn = document.getElementById('play-pause-button'),
               prevBtn = document.getElementById('prev-button'),
@@ -544,7 +733,14 @@
               currentTimeSpan = document.getElementById('current-time'),
               durationTimeSpan = document.getElementById('duration-time');
 
-        // اگر کاربر با دست لیریک را اسکرول کرد، ۴ ثانیه حرکت خودکار متوقف شود
+        const fallbackSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><rect width='200' height='200' fill='%23181820'/><text x='50%' y='54%' font-size='64' text-anchor='middle' fill='white'>🎵</text></svg>";
+        playerCover.onerror = () => { playerCover.src = fallbackSvg; };
+
+        // چرخش سه‌بعدی کاور با لمس
+        coverScene.addEventListener('click', () => {
+            coverCard3d.classList.toggle('is-flipped');
+        });
+
         playerLyrics.addEventListener('touchstart', () => {
             userScrolling = true;
             if (userScrollTimeout) clearTimeout(userScrollTimeout);
@@ -555,7 +751,6 @@
             userScrollTimeout = setTimeout(() => { userScrolling = false; }, 4000);
         }, { passive: true });
 
-        // استخراج خودکار لیریک از فایل MP3 و آماده‌سازی خطوط برای اسکرول خودکار
         function loadLyricsForTrack(tr) {
             let rawText = lyricsCache[tr.id];
             if (rawText === undefined) {
@@ -620,7 +815,6 @@
             let targetIndex = -1;
 
             if (isSyncedLyrics) {
-                // حالت اول: زمان‌بندی دقیق LRC
                 for (let i = 0; i < currentLyricsList.length; i++) {
                     if (currentLyricsList[i].time !== null && cur >= currentLyricsList[i].time) {
                         targetIndex = i;
@@ -629,8 +823,7 @@
                     }
                 }
             } else {
-                // حالت دوم: پخش هوشمند و خودکار متناسب با زمان آهنگ برای لیریک‌های بدون زمان‌بندی
-                const startOffset = Math.min(6, dur * 0.05); // چند ثانیه اول برای ملودی شروع
+                const startOffset = Math.min(6, dur * 0.05);
                 const endOffset = Math.max(cur, dur * 0.92);
                 const effectiveRatio = Math.max(0, Math.min(1, (cur - startOffset) / Math.max(1, endOffset - startOffset)));
                 targetIndex = Math.min(currentLyricsList.length - 1, Math.floor(effectiveRatio * currentLyricsList.length));
@@ -699,6 +892,12 @@
             });
         }
 
+        function updateCoverAndNote(tr) {
+            coverCard3d.classList.remove('is-flipped');
+            playerCover.src = tr.cover;
+            coverLoveNote.innerText = loveNotes[tr.fileName] || loveNotes["default"];
+        }
+
         function switchTrack(tid) {
             const tr = tracks.find(t => t.id === tid);
             if (!tr) return;
@@ -741,7 +940,7 @@
         function openPlayerPage(tid) {
             const tr = tracks.find(t => t.id === tid);
             if (!tr) return;
-            playerCover.src = tr.cover;
+            updateCoverAndNote(tr);
 
             if (currentTrackId !== tid) {
                 switchTrack(tid);
@@ -757,6 +956,7 @@
         }
 
         function closePlayerPage() {
+            coverCard3d.classList.remove('is-flipped');
             playerPage.classList.remove('open');
             mainPage.classList.remove('page-behind');
             notifyAndroidPlayerState(false);
@@ -764,7 +964,6 @@
 
         function renderTracks() {
             trackListDiv.innerHTML = '';
-            const fallbackSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><rect width='200' height='200' fill='%23222'/><text x='50%' y='54%' font-size='64' text-anchor='middle' fill='white'>🎵</text></svg>";
 
             tracks.forEach(tr => {
                 const td = document.createElement('div');
@@ -812,7 +1011,7 @@
             if (nt) {
                 switchTrack(nid);
                 if (playerPage.classList.contains('open')) {
-                    playerCover.src = nt.cover;
+                    updateCoverAndNote(nt);
                 }
                 updateProgress();
             }
@@ -857,6 +1056,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             initStarsCanvas();
             startSplashAnimation();
+            loadAllTracks();
             renderTracks();
         });
     </script>
