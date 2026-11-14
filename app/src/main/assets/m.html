@@ -77,7 +77,6 @@
             flex-direction: column;
             gap: 14px;
         }
-        /* باکس آهنگ‌ها: پس‌زمینه مشکی و بوردر حاشیه نسخه اصلی */
         .track-item {
             background: #000000;
             border-radius: 32px;
@@ -197,24 +196,36 @@
             object-fit: cover;
             box-shadow: 0 12px 28px rgba(0, 0, 0, 0.65);
         }
-        /* باکس لیریک: بدون بکگراند و بدون حاشیه (بوردر) */
+        /* باکس لیریک بدون بکگراند و بدون حاشیه با قابلیت حرکت خودکار نرم */
         .player-lyrics {
             background: transparent;
             border: none;
             box-shadow: none;
-            padding: 10px 20px;
+            padding: 80px 16px;
             width: 100%;
-            max-height: 260px;
+            height: 250px;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
-            color: #f0f0f0;
+            color: rgba(255, 255, 255, 0.55);
             font-size: 0.95rem;
-            line-height: 1.8;
+            line-height: 1.9;
             text-align: center;
-            white-space: pre-wrap;
             font-family: monospace;
-            mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
-            -webkit-mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
+            mask-image: linear-gradient(to bottom, transparent, black 18%, black 82%, transparent);
+            -webkit-mask-image: linear-gradient(to bottom, transparent, black 18%, black 82%, transparent);
+            scroll-behavior: smooth;
+        }
+        .lyric-line {
+            padding: 5px 0;
+            transition: color 0.35s ease, transform 0.35s ease, opacity 0.35s ease;
+            opacity: 0.5;
+        }
+        .lyric-line.active-line {
+            color: #ffffff;
+            opacity: 1;
+            font-weight: 600;
+            transform: scale(1.06);
+            text-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
         }
         .player-controls-section {
             width: 100%;
@@ -274,7 +285,6 @@
             height: 40px;
             display: block;
         }
-        /* انیمیشن نرم‌تر و روون‌تر برای لوگو E... */
         .splash-screen {
             position: fixed;
             top: 0;
@@ -397,25 +407,17 @@
             { id: 10, title: "Lovers Rock", artist: "TV Girl", cover: "file:///android_asset/media/images/cover10.jpg", mp3: "file:///android_asset/media/audios/song10.mp3" }
         ];
 
-        // لیریک‌ها (متن آهنگ‌ها)
-        const lyricsData = {
-            1: "I catch myself daydreaming\nThinking about the things we could be\nSailor song playing softly in the dark\nYou stole my heart right from the start.",
-            2: "Come 'round, make it right\nI'll be your friend in the dark\nFalling down, crashing 'round\nMy world's turning upside down.",
-            3: "You're the pain in my chest\nAnd you know that you're my best friend\nI'll keep holding on until the very end.",
-            4: "Dracula in the night\nShining under lunar light\nWon't you stay with me tonight?",
-            5: "You are the cure for everything\nThe only song I wanna sing\nHold me close and never let me go.",
-            6: "Scars on my mind, but you make them fade\nBest memories that we ever made\nI love you more than words can say.",
-            7: "Swing Lynn, let me in\nWe can start it all again\nFloating high above the ground.",
-            8: "Raindrops falling on the windowpane\nWashing away all the sorrow and pain\nThinking of you through the storm.",
-            9: "Feeling the heat when you're around\nNo better love to be found\nJust you and me against the world.",
-            10: "But you will never see\nYou will never see me fall apart\nLover's rock playing in the dark\nYou're my universe."
-        };
-
+        const lyricsCache = {};
         const moonCanvases = {};
         const trackElements = {};
         const lastMoonProgress = {};
 
         let currentTrackId = null, isPlaying = false;
+        let currentLyricsList = []; // آرایه خطوط لیریک آهنگ فعلی
+        let isSyncedLyrics = false; // آیا لیریک دارای زمان‌بندی LRC است؟
+        let activeLyricIndex = -1;
+        let userScrolling = false;
+        let userScrollTimeout = null;
 
         document.addEventListener('contextmenu', e => e.preventDefault());
 
@@ -542,6 +544,113 @@
               currentTimeSpan = document.getElementById('current-time'),
               durationTimeSpan = document.getElementById('duration-time');
 
+        // اگر کاربر با دست لیریک را اسکرول کرد، ۴ ثانیه حرکت خودکار متوقف شود
+        playerLyrics.addEventListener('touchstart', () => {
+            userScrolling = true;
+            if (userScrollTimeout) clearTimeout(userScrollTimeout);
+        }, { passive: true });
+
+        playerLyrics.addEventListener('touchend', () => {
+            if (userScrollTimeout) clearTimeout(userScrollTimeout);
+            userScrollTimeout = setTimeout(() => { userScrolling = false; }, 4000);
+        }, { passive: true });
+
+        // استخراج خودکار لیریک از فایل MP3 و آماده‌سازی خطوط برای اسکرول خودکار
+        function loadLyricsForTrack(tr) {
+            let rawText = lyricsCache[tr.id];
+            if (rawText === undefined) {
+                if (window.AndroidBridge && typeof window.AndroidBridge.getLyrics === 'function') {
+                    rawText = window.AndroidBridge.getLyrics(tr.mp3) || '';
+                } else {
+                    rawText = '';
+                }
+                lyricsCache[tr.id] = rawText;
+            }
+
+            playerLyrics.innerHTML = '';
+            playerLyrics.scrollTop = 0;
+            currentLyricsList = [];
+            isSyncedLyrics = false;
+            activeLyricIndex = -1;
+
+            if (!rawText || !rawText.trim()) {
+                playerLyrics.innerHTML = '<div class="lyric-line active-line">✨ Instrumental / No Lyrics ✨</div>';
+                return;
+            }
+
+            const lines = rawText.split(/\r?\n/);
+            const timeRegex = /\[(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?\]/;
+
+            lines.forEach(line => {
+                const match = timeRegex.exec(line);
+                if (match) {
+                    isSyncedLyrics = true;
+                    const min = parseInt(match[1], 10);
+                    const sec = parseInt(match[2], 10);
+                    const ms = match[3] ? parseInt(match[3].padEnd(3, '0'), 10) : 0;
+                    const timeInSec = min * 60 + sec + ms / 1000;
+                    const cleanText = line.replace(/\[\d{1,2}:\d{2}(?:\.\d{1,3})?\]/g, '').trim();
+                    if (cleanText) {
+                        currentLyricsList.push({ time: timeInSec, text: cleanText });
+                    }
+                } else {
+                    const clean = line.trim();
+                    if (clean && !/^\[(ti|ar|al|by|offset):/i.test(clean)) {
+                        currentLyricsList.push({ time: null, text: clean });
+                    }
+                }
+            });
+
+            if (isSyncedLyrics) {
+                currentLyricsList.sort((a, b) => (a.time || 0) - (b.time || 0));
+            }
+
+            currentLyricsList.forEach((item, idx) => {
+                const div = document.createElement('div');
+                div.className = 'lyric-line';
+                div.id = 'lyric-line-' + idx;
+                div.innerText = item.text;
+                playerLyrics.appendChild(div);
+            });
+        }
+
+        function syncLyricsScroll(cur, dur) {
+            if (!currentLyricsList.length || userScrolling) return;
+
+            let targetIndex = -1;
+
+            if (isSyncedLyrics) {
+                // حالت اول: زمان‌بندی دقیق LRC
+                for (let i = 0; i < currentLyricsList.length; i++) {
+                    if (currentLyricsList[i].time !== null && cur >= currentLyricsList[i].time) {
+                        targetIndex = i;
+                    } else {
+                        break;
+                    }
+                }
+            } else {
+                // حالت دوم: پخش هوشمند و خودکار متناسب با زمان آهنگ برای لیریک‌های بدون زمان‌بندی
+                const startOffset = Math.min(6, dur * 0.05); // چند ثانیه اول برای ملودی شروع
+                const endOffset = Math.max(cur, dur * 0.92);
+                const effectiveRatio = Math.max(0, Math.min(1, (cur - startOffset) / Math.max(1, endOffset - startOffset)));
+                targetIndex = Math.min(currentLyricsList.length - 1, Math.floor(effectiveRatio * currentLyricsList.length));
+            }
+
+            if (targetIndex !== -1 && targetIndex !== activeLyricIndex) {
+                if (activeLyricIndex !== -1) {
+                    const prevEl = document.getElementById('lyric-line-' + activeLyricIndex);
+                    if (prevEl) prevEl.classList.remove('active-line');
+                }
+                const activeEl = document.getElementById('lyric-line-' + targetIndex);
+                if (activeEl) {
+                    activeEl.classList.add('active-line');
+                    const scrollTarget = activeEl.offsetTop - (playerLyrics.clientHeight / 2) + (activeEl.clientHeight / 2);
+                    playerLyrics.scrollTo({ top: Math.max(0, scrollTarget), behavior: 'smooth' });
+                }
+                activeLyricIndex = targetIndex;
+            }
+        }
+
         function formatTime(s) {
             if (isNaN(s)) return '0:00';
             let m = Math.floor(s / 60), sec = Math.floor(s % 60);
@@ -559,6 +668,9 @@
                 durationTimeSpan.innerText = formatTime(dur);
                 progressBar.style.background = `linear-gradient(to right, white 0%, white ${p}%, rgba(255,255,255,0.2) ${p}%, rgba(255,255,255,0.2) 100%)`;
                 if (currentTrackId) updateMoonForTrack(currentTrackId, ratio);
+                if (playerPage.classList.contains('open')) {
+                    syncLyricsScroll(cur, dur);
+                }
             } else {
                 progressBar.value = 0;
                 currentTimeSpan.innerText = '0:00';
@@ -569,8 +681,10 @@
 
         function seekTo(e) {
             if (audioPlayer.duration) {
+                userScrolling = false;
                 audioPlayer.currentTime = (e.target.value / 100) * audioPlayer.duration;
                 if (currentTrackId) updateMoonForTrack(currentTrackId, audioPlayer.currentTime / audioPlayer.duration, true);
+                syncLyricsScroll(audioPlayer.currentTime, audioPlayer.duration);
             }
         }
 
@@ -593,6 +707,7 @@
             }
             currentTrackId = tid;
             highlightActiveTrack(tid);
+            loadLyricsForTrack(tr);
             audioPlayer.src = tr.mp3;
             audioPlayer.load();
             audioPlayer.play().catch(() => {});
@@ -627,10 +742,11 @@
             const tr = tracks.find(t => t.id === tid);
             if (!tr) return;
             playerCover.src = tr.cover;
-            playerLyrics.innerText = lyricsData[tid] || '✨ No lyrics yet ✨';
 
             if (currentTrackId !== tid) {
                 switchTrack(tid);
+            } else if (!currentLyricsList.length) {
+                loadLyricsForTrack(tr);
             }
 
             updatePlayPauseButton();
@@ -697,7 +813,6 @@
                 switchTrack(nid);
                 if (playerPage.classList.contains('open')) {
                     playerCover.src = nt.cover;
-                    playerLyrics.innerText = lyricsData[nid] || '✨ No lyrics yet ✨';
                 }
                 updateProgress();
             }
