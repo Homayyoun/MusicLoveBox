@@ -16,6 +16,8 @@ import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.view.Gravity;
 import android.view.View;
 import android.view.Window;
@@ -54,6 +56,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean isPlayerPageOpen = false;
     private AudioManager audioManager;
     private AudioFocusRequest focusRequest;
+    private Vibrator vibrator;
 
     private final AudioManager.OnAudioFocusChangeListener focusChangeListener = focusChange -> {
         if (focusChange == AudioManager.AUDIOFOCUS_LOSS || focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
@@ -68,6 +71,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
         setupAudioFocus();
         setupWebView();
         setupBackNavigation();
@@ -94,7 +98,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
-                // استخراج مستقیم و فوق‌سریع کاور از داخل خود فایل MP3 برای آهنگ‌های جدید
                 if ("https".equals(uri.getScheme()) && "lovebox.cover".equals(uri.getHost())) {
                     String path = uri.getPath();
                     if (path != null && path.length() > 1) {
@@ -161,7 +164,22 @@ public class MainActivity extends AppCompatActivity {
             isPlayerPageOpen = isOpen;
         }
 
-        // اسکن خودکار پوشه audios و استخراج نام آهنگ، خواننده و کاور
+        // ایجاد حس ضربان قلب واقعی در دست (تپ-تپ دوضرب)
+        @JavascriptInterface
+        public void triggerHeartbeatVibration() {
+            if (vibrator != null && vibrator.hasVibrator()) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    // الگوی دوضرب: ۵۰ میلی‌ثانیه ویبره، ۸۰ میلی‌ثانیه مکث، ۱۱۰ میلی‌ثانیه ویبره
+                    long[] timings = {0, 50, 80, 110};
+                    int[] amplitudes = {0, 180, 0, 255};
+                    vibrator.vibrate(VibrationEffect.createWaveform(timings, amplitudes, -1));
+                } else {
+                    long[] pattern = {0, 50, 80, 110};
+                    vibrator.vibrate(pattern, -1);
+                }
+            }
+        }
+
         @JavascriptInterface
         public String getTracksJson() {
             JSONArray jsonArray = new JSONArray();
@@ -181,7 +199,6 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
 
-                    // مرتب‌سازی طبیعی اعداد (song1, song2, ..., song10)
                     Collections.sort(mp3List, (a, b) -> {
                         int numA = extractNumber(a);
                         int numB = extractNumber(b);
@@ -214,7 +231,6 @@ public class MainActivity extends AppCompatActivity {
                             artist = "My Love's Playlist";
                         }
 
-                        // بررسی وجود کاور در پوشه images یا استفاده از کاور داخل فایل MP3
                         int songNum = extractNumber(fileName);
                         String coverUrl;
                         if (songNum != -1 && imageSet.contains("cover" + songNum + ".jpg")) {
