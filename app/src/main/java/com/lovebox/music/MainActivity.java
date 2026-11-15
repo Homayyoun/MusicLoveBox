@@ -18,6 +18,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
+import android.os.VibratorManager;
 import android.view.Gravity;
 import android.view.View;
 import android.view.Window;
@@ -44,7 +45,6 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -71,7 +71,13 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            VibratorManager vm = (VibratorManager) getSystemService(Context.VIBRATOR_MANAGER_SERVICE);
+            if (vm != null) vibrator = vm.getDefaultVibrator();
+        } else {
+            vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+        }
+
         setupAudioFocus();
         setupWebView();
         setupBackNavigation();
@@ -164,20 +170,32 @@ public class MainActivity extends AppCompatActivity {
             isPlayerPageOpen = isOpen;
         }
 
-        // ایجاد حس ضربان قلب واقعی در دست (تپ-تپ دوضرب)
+        // ایجاد پالس دوضرب واقعی قلب (Lub-Dub) در موتور ویبره
         @JavascriptInterface
         public void triggerHeartbeatVibration() {
-            if (vibrator != null && vibrator.hasVibrator()) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    // الگوی دوضرب: ۵۰ میلی‌ثانیه ویبره، ۸۰ میلی‌ثانیه مکث، ۱۱۰ میلی‌ثانیه ویبره
-                    long[] timings = {0, 50, 80, 110};
-                    int[] amplitudes = {0, 180, 0, 255};
-                    vibrator.vibrate(VibrationEffect.createWaveform(timings, amplitudes, -1));
-                } else {
-                    long[] pattern = {0, 50, 80, 110};
-                    vibrator.vibrate(pattern, -1);
+            try {
+                if (vibrator != null && vibrator.hasVibrator()) {
+                    long[] pattern = {0, 45, 95, 85};
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                                .setUsage(AudioAttributes.USAGE_ALARM)
+                                .build();
+                        vibrator.vibrate(VibrationEffect.createWaveform(pattern, -1), audioAttributes);
+                    } else {
+                        vibrator.vibrate(pattern, -1);
+                    }
                 }
-            }
+            } catch (Exception ignored) {}
+        }
+
+        @JavascriptInterface
+        public void stopHeartbeatVibration() {
+            try {
+                if (vibrator != null) {
+                    vibrator.cancel();
+                }
+            } catch (Exception ignored) {}
         }
 
         @JavascriptInterface
