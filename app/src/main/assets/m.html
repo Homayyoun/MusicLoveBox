@@ -154,14 +154,14 @@
             text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
         }
 
-        /* ====== باکس شیشه‌ای زمان (طراحی ترکیبی بین نسخه شیشه‌ای و نسخه تیره شبانه) ====== */
+        /* ====== باکس شیشه‌ای زمان (هم‌شکل با دیالوگ خروج + تصویر متن پایین) ====== */
         .love-time-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.62);
+            background: rgba(0, 0, 0, 0.6);
             z-index: 100;
             display: flex;
             align-items: center;
@@ -169,7 +169,7 @@
             padding: 20px;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.28s ease;
+            transition: opacity 0.25s ease;
         }
         .love-time-overlay.visible {
             opacity: 1;
@@ -177,21 +177,20 @@
         }
         .love-time-card {
             width: 100%;
-            max-width: 325px;
-            background: radial-gradient(circle at 30% 15%, rgba(22, 20, 32, 0.88) 0%, rgba(7, 7, 11, 0.92) 68%, rgba(0, 0, 0, 0.95) 100%);
-            border: 1px solid rgba(255, 244, 228, 0.26);
-            border-radius: 26px;
-            padding: 24px 20px 20px 20px;
-            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85), inset 0 0 18px rgba(255, 240, 215, 0.04);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+            max-width: 310px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 24px;
+            padding: 24px 20px 18px 20px;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             text-align: center;
-            transform: scale(0.9) translateY(8px);
-            transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+            transform: scale(0.92);
+            transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
             direction: ltr;
         }
         .love-time-overlay.visible .love-time-card {
-            transform: scale(1) translateY(0);
+            transform: scale(1);
         }
         .modal-heart-icon {
             width: 28px;
@@ -206,12 +205,11 @@
             grid-template-columns: repeat(4, 1fr);
             gap: 8px;
             direction: ltr;
-            margin-bottom: 16px;
         }
         .time-unit-box {
             background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 244, 228, 0.16);
-            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 14px;
             padding: 10px 4px;
             display: flex;
             flex-direction: column;
@@ -220,26 +218,24 @@
         }
         .time-unit-val {
             color: #ffffff;
-            font-size: 1.12rem;
+            font-size: 1.1rem;
             font-weight: 600;
             font-family: monospace;
             font-variant-numeric: tabular-nums;
-            text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
         }
         .time-unit-label {
-            color: rgba(255, 244, 228, 0.68);
+            color: rgba(255, 255, 255, 0.65);
             font-size: 0.68rem;
             margin-top: 4px;
             letter-spacing: 0.5px;
         }
-        .love-time-quote {
-            color: rgba(255, 248, 240, 0.88);
-            font-size: 0.8rem;
-            line-height: 1.55;
-            font-style: italic;
-            border-top: 1px solid rgba(255, 244, 228, 0.13);
-            padding-top: 13px;
-            letter-spacing: 0.2px;
+        /* تصویر جمله انگلیسی زیر شمارنده‌ها بدون جداکننده */
+        .love-time-quote-img {
+            width: 230px;
+            max-width: 92%;
+            height: auto;
+            display: block;
+            margin: 16px auto 0 auto;
         }
 
         .track-list {
@@ -367,10 +363,10 @@
             width: 100%;
         }
 
-        /* ====== کارت سه‌بعدی کاور (با رنگ و استایل ترکیبی) ====== */
+        /* ====== کارت سه‌بعدی کاور (ترکیبی از باکس شیشه‌ای خروج و کارت قبلی) ====== */
         .cover-scene {
-            width: 210px;
-            height: 210px;
+            width: 215px;
+            height: 215px;
             perspective: 1200px;
             -webkit-perspective: 1200px;
             cursor: pointer;
@@ -404,9 +400,10 @@
             box-shadow: 0 14px 32px rgba(0, 0, 0, 0.78);
         }
         .cover-face-front {
-            background: #000000;
-            border: 1px solid rgba(255, 244, 228, 0.22);
+            background: #08080a;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
+        /* بازتاب نور ظریف هنگام چرخیدن */
         .cover-face::after {
             content: '';
             position: absolute;
@@ -414,7 +411,7 @@
             left: -60%;
             width: 55%;
             height: 200%;
-            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.16) 50%, rgba(255,255,255,0) 100%);
+            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.14) 50%, rgba(255,255,255,0) 100%);
             transform: rotate(25deg) translateX(-180%);
             transition: transform 0.85s cubic-bezier(0.22, 1, 0.36, 1);
             pointer-events: none;
@@ -431,15 +428,15 @@
             object-fit: cover;
             display: block;
         }
-        /* پشت کاور: رنگ و حاشیه ترکیبی شیشه‌ای-شبانه */
+        /* طراحی پشت کاور: حد واسطِ شیشه‌ایِ باکس خروج و گرادیان عمیق قبلی */
         .cover-face-back {
             transform: rotateY(180deg);
-            background: radial-gradient(circle at 30% 15%, rgba(22, 20, 32, 0.88) 0%, rgba(7, 7, 11, 0.92) 68%, rgba(0, 0, 0, 0.95) 100%);
-            border: 1px solid rgba(255, 244, 228, 0.26);
-            box-shadow: 0 14px 34px rgba(0, 0, 0, 0.85), inset 0 0 18px rgba(255, 240, 215, 0.04);
+            background: radial-gradient(circle at 50% 18%, rgba(28, 26, 36, 0.86) 0%, rgba(6, 6, 10, 0.9) 65%, rgba(0, 0, 0, 0.94) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.26);
+            box-shadow: 0 14px 32px rgba(0, 0, 0, 0.85), inset 0 0 24px rgba(255, 248, 235, 0.06);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
-            padding: 20px 18px;
+            padding: 22px 18px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -448,12 +445,12 @@
         .note-body-text {
             color: #ffffff;
             font-size: 0.88rem;
-            line-height: 1.65;
+            line-height: 1.68;
             max-height: 100%;
             overflow-y: auto;
             font-weight: 400;
             direction: ltr;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
         }
 
         .player-lyrics {
@@ -544,7 +541,7 @@
             display: block;
         }
 
-        /* ====== انیمیشن فوق‌روان ۶۰ فریم بر ثانیه برای E . . . (بدون لگ و پرش) ====== */
+        /* ====== انیمیشن فوق‌روان و بدون لگِ E . . . (Pure GPU CSS Timeline) ====== */
         .splash-screen {
             position: fixed;
             top: 0;
@@ -570,6 +567,7 @@
             justify-content: center;
             gap: 1px;
             direction: ltr;
+            transform: translateZ(0);
         }
         .ae-item {
             width: 55px;
@@ -581,9 +579,7 @@
             margin-right: -12px;
             opacity: 0;
             transform: translate3d(0, 6px, 0) scale(0.82);
-            transition: opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1),
-                        transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
-            will-change: opacity, transform;
+            will-change: transform, opacity;
         }
         .dot-item {
             width: 7px;
@@ -593,34 +589,50 @@
             box-shadow: 0 0 8px rgba(255, 255, 255, 0.85);
             margin-left: 5px;
             opacity: 0;
-            transform: translate3d(0, 4px, 0) scale(0.5);
-            transition: opacity 0.38s cubic-bezier(0.22, 1, 0.36, 1),
-                        transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
-            will-change: opacity, transform;
+            transform: translate3d(0, 4px, 0) scale(0.6);
+            will-change: transform, opacity;
         }
         .dot-item:not(:last-child) { margin-right: 8px; }
-        .ae-item.show, .dot-item.show {
-            opacity: 1;
-            transform: translate3d(0, 0, 0) scale(1);
+
+        .ae-container.animate .ae-item,
+        .ae-container.animate .dot-item {
+            animation: silkyReveal 0.52s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        .ae-container.animate .ae-1 { animation-delay: 0.08s; }
+        .ae-container.animate .ae-2 { animation-delay: 0.36s; }
+        .ae-container.animate .ae-3 { animation-delay: 0.64s; }
+        .ae-container.animate .dot-1 { animation-delay: 0.94s; }
+        .ae-container.animate .dot-2 { animation-delay: 1.20s; }
+        .ae-container.animate .dot-3 { animation-delay: 1.46s; }
+
+        @keyframes silkyReveal {
+            0% {
+                opacity: 0;
+                transform: translate3d(0, 6px, 0) scale(0.82);
+            }
+            100% {
+                opacity: 1;
+                transform: translate3d(0, 0, 0) scale(1);
+            }
         }
     </style>
 </head>
 <body>
-    <!-- آیتم‌های لودینگ از قبل چیده شده‌اند تا بدون پرش و لگ، نرم ظاهر شوند -->
+    <!-- عناصر انیمیشن از قبل در صفحه آماده هستند تا هیچ لگی موقع ساخت ایجاد نشود -->
     <div id="splash-screen" class="splash-screen">
         <div id="ae-container" class="ae-container">
-            <div class="ae-item splash-step"></div>
-            <div class="ae-item splash-step"></div>
-            <div class="ae-item splash-step"></div>
-            <div class="dot-item splash-step"></div>
-            <div class="dot-item splash-step"></div>
-            <div class="dot-item splash-step"></div>
+            <div class="ae-item ae-1"></div>
+            <div class="ae-item ae-2"></div>
+            <div class="ae-item ae-3"></div>
+            <div class="dot-item dot-1"></div>
+            <div class="dot-item dot-2"></div>
+            <div class="dot-item dot-3"></div>
         </div>
     </div>
 
     <canvas id="stars-canvas"></canvas>
 
-    <!-- باکس شیشه‌ای زمان (قلب تپنده + شمارنده‌های انگلیسی + جمله عاشقانه انگلیسی) -->
+    <!-- باکس شیشه‌ای تپش قلب (شمارنده‌ها + تصویر متن زیر آن بدون خط جداکننده) -->
     <div id="love-time-overlay" class="love-time-overlay">
         <div class="love-time-card">
             <svg class="modal-heart-icon" viewBox="0 0 24 24">
@@ -644,9 +656,7 @@
                     <span class="time-unit-label">Secs</span>
                 </div>
             </div>
-            <div class="love-time-quote">
-                "Every second since that night, my heart has only known how to beat for you."
-            </div>
+            <img src="file:///android_asset/media/images/footer.png" alt="Love Quote" class="love-time-quote-img">
         </div>
     </div>
 
@@ -1310,46 +1320,41 @@
         nextBtn.addEventListener('click', playNext);
         backButton.addEventListener('click', closePlayerPage);
 
-        // اجرای فوق‌روان لودینگ پس از اتمام بارگذاری اولیه
-        function startSplashAnimation() {
+        // اجرای ۱۰۰٪ روان انیمیشن E . . . با تفکیک بار پردازشی
+        function runButterSmoothSplash() {
             const splashScreenElem = document.getElementById('splash-screen');
-            const steps = document.querySelectorAll('.splash-step');
-            const stepInterval = 320;
+            const aeContainer = document.getElementById('ae-container');
+            const preloadImg = new Image();
+            preloadImg.src = 'file:///android_asset/media/images/ae.png';
 
-            steps.forEach((el, idx) => {
-                setTimeout(() => {
-                    el.classList.add('show');
-                }, 180 + idx * stepInterval);
-            });
+            function beginSequence() {
+                requestAnimationFrame(() => {
+                    aeContainer.classList.add('animate');
+                    // صبر تا اتمام کامل انیمیشن E . . . (بدون هیچ پردازش سنگینی در پس‌زمینه)
+                    setTimeout(() => {
+                        loadAllTracks();
+                        renderTracks();
+                        initHeartbeatCounter();
+                        initStarsCanvas();
+                        startSmoothLyricsLoop();
 
-            const totalTime = 180 + steps.length * stepInterval + 420;
-            setTimeout(() => {
-                splashScreenElem.classList.add('fade-out');
-                setTimeout(() => splashScreenElem.remove(), 800);
-            }, totalTime);
+                        requestAnimationFrame(() => {
+                            splashScreenElem.classList.add('fade-out');
+                            setTimeout(() => splashScreenElem.remove(), 800);
+                        });
+                    }, 2150);
+                });
+            }
+
+            if (preloadImg.complete) {
+                beginSequence();
+            } else {
+                preloadImg.onload = beginSequence;
+                preloadImg.onerror = beginSequence;
+            }
         }
 
-        window.addEventListener('DOMContentLoaded', () => {
-            // ۱. ابتدا کارهای سنگین در پس‌زمینه انجام می‌شوند
-            loadAllTracks();
-            renderTracks();
-            initStarsCanvas();
-            initHeartbeatCounter();
-            startSmoothLyricsLoop();
-
-            // ۲. پس از آزاد شدن کامل پردازنده، انیمیشن E... با نرخ ۶۰ فریم اجرا می‌شود
-            const aeImg = new Image();
-            aeImg.src = 'file:///android_asset/media/images/ae.png';
-            const triggerSplash = () => {
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        startSplashAnimation();
-                    });
-                });
-            };
-            aeImg.onload = triggerSplash;
-            aeImg.onerror = triggerSplash;
-        });
+        window.addEventListener('DOMContentLoaded', runButterSmoothSplash);
     </script>
 </body>
 </html>
