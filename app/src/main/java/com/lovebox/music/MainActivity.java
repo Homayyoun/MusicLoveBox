@@ -2,7 +2,15 @@ package com.lovebox.music;
 
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.res.AssetFileDescriptor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -16,9 +24,12 @@ import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.os.VibratorManager;
+import android.support.v4.media.session.MediaSessionCompat;
+import android.support.v4.media.session.PlaybackStateCompat;
 import android.view.Gravity;
 import android.view.View;
 import android.view.Window;
@@ -34,6 +45,7 @@ import android.widget.LinearLayout;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.NotificationCompat;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -57,6 +69,11 @@ public class MainActivity extends AppCompatActivity {
     private AudioManager audioManager;
     private AudioFocusRequest focusRequest;
     private Vibrator vibrator;
+    private static MainActivity instance;
+
+    public static MainActivity getInstance() {
+        return instance;
+    }
 
     private final AudioManager.OnAudioFocusChangeListener focusChangeListener = focusChange -> {
         if (focusChange == AudioManager.AUDIOFOCUS_LOSS || focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
@@ -69,6 +86,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        instance = this;
         setContentView(R.layout.activity_main);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -128,9 +146,7 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e) {
             return null;
         } finally {
-            try {
-                retriever.release();
-            } catch (Exception ignored) {}
+            try { retriever.release(); } catch (Exception ignored) {}
         }
     }
 
@@ -170,7 +186,27 @@ public class MainActivity extends AppCompatActivity {
             isPlayerPageOpen = isOpen;
         }
 
-        // ایجاد پالس دوضرب واقعی قلب (Lub-Dub) در موتور ویبره
+        @JavascriptInterface
+        public void updateMediaNotification(String title, String artist, String coverUrl, boolean isPlayingState) {
+            Intent serviceIntent = new Intent(MainActivity.this, MusicService.class);
+            serviceIntent.setAction(isPlayingState ? "ACTION_PLAY" : "ACTION_PAUSE");
+            serviceIntent.putExtra("TITLE", title);
+            serviceIntent.putExtra("ARTIST", artist);
+            serviceIntent.putExtra("IS_PLAYING", isPlayingState);
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent);
+            } else {
+                startService(serviceIntent);
+            }
+        }
+
+        @JavascriptInterface
+        public void stopMediaNotification() {
+            Intent serviceIntent = new Intent(MainActivity.this, MusicService.class);
+            stopService(serviceIntent);
+        }
+
         @JavascriptInterface
         public void triggerHeartbeatVibration() {
             try {
@@ -192,9 +228,7 @@ public class MainActivity extends AppCompatActivity {
         @JavascriptInterface
         public void stopHeartbeatVibration() {
             try {
-                if (vibrator != null) {
-                    vibrator.cancel();
-                }
+                if (vibrator != null) vibrator.cancel();
             } catch (Exception ignored) {}
         }
 
@@ -205,24 +239,18 @@ public class MainActivity extends AppCompatActivity {
                 String[] audioFiles = getAssets().list("media/audios");
                 String[] imageFiles = getAssets().list("media/images");
                 Set<String> imageSet = new HashSet<>();
-                if (imageFiles != null) {
-                    Collections.addAll(imageSet, imageFiles);
-                }
+                if (imageFiles != null) Collections.addAll(imageSet, imageFiles);
 
                 if (audioFiles != null) {
                     List<String> mp3List = new ArrayList<>();
                     for (String f : audioFiles) {
-                        if (f.toLowerCase().endsWith(".mp3")) {
-                            mp3List.add(f);
-                        }
+                        if (f.toLowerCase().endsWith(".mp3")) mp3List.add(f);
                     }
 
                     Collections.sort(mp3List, (a, b) -> {
                         int numA = extractNumber(a);
                         int numB = extractNumber(b);
-                        if (numA != -1 && numB != -1 && numA != numB) {
-                            return Integer.compare(numA, numB);
-                        }
+                        if (numA != -1 && numB != -1 && numA != numB) return Integer.compare(numA, numB);
                         return a.compareToIgnoreCase(b);
                     });
 
@@ -242,12 +270,8 @@ public class MainActivity extends AppCompatActivity {
                             try { retriever.release(); } catch (Exception ignored) {}
                         }
 
-                        if (title == null || title.trim().isEmpty()) {
-                            title = fileName.replaceFirst("[.][^.]+$", "");
-                        }
-                        if (artist == null || artist.trim().isEmpty()) {
-                            artist = "My Love's Playlist";
-                        }
+                        if (title == null || title.trim().isEmpty()) title = fileName.replaceFirst("[.][^.]+$", "");
+                        if (artist == null || artist.trim().isEmpty()) artist = "My Love's Playlist";
 
                         int songNum = extractNumber(fileName);
                         String coverUrl;
@@ -277,18 +301,14 @@ public class MainActivity extends AppCompatActivity {
         public String getLyrics(String mp3Url) {
             if (mp3Url == null) return "";
             String assetPath = mp3Url.replace("file:///android_asset/", "");
-
             String lrcPath = assetPath.replaceAll("\\.mp3$", ".lrc");
             try (InputStream lrcStream = getAssets().open(lrcPath)) {
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 byte[] buffer = new byte[1024];
                 int len;
-                while ((len = lrcStream.read(buffer)) != -1) {
-                    baos.write(buffer, 0, len);
-                }
+                while ((len = lrcStream.read(buffer)) != -1) baos.write(buffer, 0, len);
                 return baos.toString("UTF-8");
             } catch (IOException ignored) {}
-
             return extractId3Lyrics(assetPath);
         }
     }
@@ -296,11 +316,7 @@ public class MainActivity extends AppCompatActivity {
     private int extractNumber(String name) {
         String digits = name.replaceAll("\\D+", "");
         if (digits.isEmpty()) return -1;
-        try {
-            return Integer.parseInt(digits);
-        } catch (NumberFormatException e) {
-            return -1;
-        }
+        try { return Integer.parseInt(digits); } catch (NumberFormatException e) { return -1; }
     }
 
     private String extractId3Lyrics(String assetPath) {
@@ -311,42 +327,24 @@ public class MainActivity extends AppCompatActivity {
 
             int version = header[3] & 0xFF;
             int flags = header[5] & 0xFF;
-            int tagSize = ((header[6] & 0x7F) << 21) |
-                          ((header[7] & 0x7F) << 14) |
-                          ((header[8] & 0x7F) << 7)  |
-                          (header[9] & 0x7F);
+            int tagSize = ((header[6] & 0x7F) << 21) | ((header[7] & 0x7F) << 14) | ((header[8] & 0x7F) << 7) | (header[9] & 0x7F);
 
             if ((flags & 0x40) != 0) {
                 byte[] extSizeBytes = new byte[4];
                 if (is.read(extSizeBytes) != 4) return "";
-                int extSize = (version == 4)
-                        ? (((extSizeBytes[0] & 0x7F) << 21) | ((extSizeBytes[1] & 0x7F) << 14) | ((extSizeBytes[2] & 0x7F) << 7) | (extSizeBytes[3] & 0x7F))
-                        : (((extSizeBytes[0] & 0xFF) << 24) | ((extSizeBytes[1] & 0xFF) << 16) | ((extSizeBytes[2] & 0xFF) << 8) | (extSizeBytes[3] & 0xFF));
+                int extSize = (version == 4) ? (((extSizeBytes[0] & 0x7F) << 21) | ((extSizeBytes[1] & 0x7F) << 14) | ((extSizeBytes[2] & 0x7F) << 7) | (extSizeBytes[3] & 0x7F)) : (((extSizeBytes[0] & 0xFF) << 24) | ((extSizeBytes[1] & 0xFF) << 16) | ((extSizeBytes[2] & 0xFF) << 8) | (extSizeBytes[3] & 0xFF));
                 is.skip(extSize - 4);
             }
 
             int bytesRead = 0;
             byte[] frameHeader = new byte[10];
-
             while (bytesRead + 10 < tagSize) {
                 if (is.read(frameHeader) != 10) break;
                 bytesRead += 10;
-
                 if (frameHeader[0] == 0) break;
 
                 String frameId = new String(frameHeader, 0, 4, StandardCharsets.ISO_8859_1);
-                int frameSize;
-                if (version == 4) {
-                    frameSize = ((frameHeader[4] & 0x7F) << 21) |
-                                ((frameHeader[5] & 0x7F) << 14) |
-                                ((frameHeader[6] & 0x7F) << 7)  |
-                                (frameHeader[7] & 0x7F);
-                } else {
-                    frameSize = ((frameHeader[4] & 0xFF) << 24) |
-                                ((frameHeader[5] & 0xFF) << 16) |
-                                ((frameHeader[6] & 0xFF) << 8)  |
-                                (frameHeader[7] & 0xFF);
-                }
+                int frameSize = (version == 4) ? ((frameHeader[4] & 0x7F) << 21) | ((frameHeader[5] & 0x7F) << 14) | ((frameHeader[6] & 0x7F) << 7) | (frameHeader[7] & 0x7F) : ((frameHeader[4] & 0xFF) << 24) | ((frameHeader[5] & 0xFF) << 16) | ((frameHeader[6] & 0xFF) << 8) | (frameHeader[7] & 0xFF);
 
                 if (frameSize <= 0 || bytesRead + frameSize > tagSize) break;
 
@@ -377,19 +375,14 @@ public class MainActivity extends AppCompatActivity {
         if (data.length <= 4) return "";
         int encoding = data[0] & 0xFF;
         int pos = 4;
-
         if (encoding == 0 || encoding == 3) {
-            while (pos < data.length && data[pos] != 0) {
-                pos++;
-            }
+            while (pos < data.length && data[pos] != 0) pos++;
             pos++;
             if (pos >= data.length) return "";
             Charset charset = (encoding == 3) ? StandardCharsets.UTF_8 : StandardCharsets.ISO_8859_1;
             return new String(data, pos, data.length - pos, charset).replace("\u0000", "").trim();
         } else if (encoding == 1 || encoding == 2) {
-            while (pos + 1 < data.length && !(data[pos] == 0 && data[pos + 1] == 0)) {
-                pos += 2;
-            }
+            while (pos + 1 < data.length && !(data[pos] == 0 && data[pos + 1] == 0)) pos += 2;
             pos += 2;
             if (pos >= data.length) return "";
             Charset charset = (encoding == 1) ? StandardCharsets.UTF_16 : StandardCharsets.UTF_16BE;
@@ -461,9 +454,7 @@ public class MainActivity extends AppCompatActivity {
             dialog.dismiss();
             finish();
         });
-
         btnCancel.setOnClickListener(v -> dialog.dismiss());
-
         dialog.show();
     }
 
@@ -472,6 +463,12 @@ public class MainActivity extends AppCompatActivity {
             return BitmapFactory.decodeStream(is);
         } catch (IOException e) {
             return null;
+        }
+    }
+
+    public void runJs(String script) {
+        if (webView != null) {
+            webView.evaluateJavascript(script, null);
         }
     }
 
@@ -484,9 +481,95 @@ public class MainActivity extends AppCompatActivity {
                 audioManager.abandonAudioFocus(focusChangeListener);
             }
         }
-        if (webView != null) {
-            webView.destroy();
-        }
+        if (webView != null) webView.destroy();
         super.onDestroy();
+    }
+
+    // ====== سرویس پخش پس‌زمینه و نوتیفیکیشن مدیا پلیر ======
+    public static class MusicService extends Service {
+        private static final String CHANNEL_ID = "music_channel_01";
+
+        @Override
+        public void onCreate() {
+            super.onCreate();
+            createNotificationChannel();
+        }
+
+        @Override
+        public int onStartCommand(Intent intent, int flags, int startId) {
+            if (intent != null) {
+                String action = intent.getAction();
+                String title = intent.getStringExtra("TITLE");
+                String artist = intent.getStringExtra("ARTIST");
+                boolean isPlaying = intent.getBooleanExtra("IS_PLAYING", true);
+
+                if ("ACTION_TOGGLE".equals(action)) {
+                    if (MainActivity.getInstance() != null) {
+                        MainActivity.getInstance().runJs("togglePlayPause();");
+                    }
+                } else if ("ACTION_PREV".equals(action)) {
+                    if (MainActivity.getInstance() != null) {
+                        MainActivity.getInstance().runJs("playPrev();");
+                    }
+                } else if ("ACTION_NEXT".equals(action)) {
+                    if (MainActivity.getInstance() != null) {
+                        MainActivity.getInstance().runJs("playNext();");
+                    }
+                } else {
+                    showNotification(title != null ? title : "Music Love Box", artist != null ? artist : "Playing", isPlaying);
+                }
+            }
+            return START_NOT_STICKY;
+        }
+
+        private void createNotificationChannel() {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "Music Playback", NotificationManager.IMPORTANCE_LOW);
+                channel.setDescription("Media controls for Music Love Box");
+                NotificationManager manager = getSystemService(NotificationManager.class);
+                if (manager != null) manager.createNotificationChannel(channel);
+            }
+        }
+
+        private void showNotification(String title, String artist, boolean isPlaying) {
+            Intent notificationIntent = new Intent(this, MainActivity.class);
+            PendingIntent contentIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE);
+
+            Intent toggleIntent = new Intent(this, MusicService.class);
+            toggleIntent.setAction("ACTION_TOGGLE");
+            PendingIntent togglePendingIntent = PendingIntent.getService(this, 1, toggleIntent, PendingIntent.FLAG_IMMUTABLE);
+
+            Intent prevIntent = new Intent(this, MusicService.class);
+            prevIntent.setAction("ACTION_PREV");
+            PendingIntent prevPendingIntent = PendingIntent.getService(this, 2, prevIntent, PendingIntent.FLAG_IMMUTABLE);
+
+            Intent nextIntent = new Intent(this, MusicService.class);
+            nextIntent.setAction("ACTION_NEXT");
+            PendingIntent nextPendingIntent = PendingIntent.getService(this, 3, nextIntent, PendingIntent.FLAG_IMMUTABLE);
+
+            Bitmap icon = BitmapFactory.decodeResource(getResources(), android.R.drawable.ic_media_play);
+
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
+                    .setSmallIcon(android.R.drawable.ic_media_play)
+                    .setContentTitle(title)
+                    .setContentText(artist)
+                    .setLargeIcon(icon)
+                    .setContentIntent(contentIntent)
+                    .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                    .setPriority(NotificationCompat.PRIORITY_LOW)
+                    .setOngoing(isPlaying)
+                    .setStyle(new androidx.media.app.NotificationCompat.MediaStyle()
+                            .setShowActionsInCompactView(0, 1, 2))
+                    .addAction(android.R.drawable.ic_media_previous, "Previous", prevPendingIntent)
+                    .addAction(isPlaying ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play, "Play/Pause", togglePendingIntent)
+                    .addAction(android.R.drawable.ic_media_next, "Next", nextPendingIntent);
+
+            startForeground(1, builder.build());
+        }
+
+        @Override
+        public IBinder onBind(Intent intent) {
+            return null;
+        }
     }
 }
