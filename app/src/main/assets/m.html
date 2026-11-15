@@ -17,7 +17,7 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            font-family: 'Segoe UI', 'Poppins', 'Tahoma', system-ui, sans-serif;
+            font-family: 'Segoe UI', 'Poppins', system-ui, sans-serif;
             user-select: none;
             -webkit-user-select: none;
             -webkit-touch-callout: none;
@@ -92,7 +92,7 @@
             margin: 0 auto;
         }
 
-        /* ====== قلب تپنده و شمارنده (بدون بک‌گراند اضافی هنگام لمس) ====== */
+        /* ====== قلب تپنده و شمارنده زیر هدر ====== */
         .heartbeat-counter-box {
             display: inline-flex;
             align-items: center;
@@ -154,14 +154,14 @@
             text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
         }
 
-        /* ====== کادر شیشه‌ای جزئیات زمان عاشقی (Love Time Modal) ====== */
+        /* ====== باکس شیشه‌ای زمان (هم‌شکل با دیالوگ خروج) ====== */
         .love-time-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.65);
+            background: rgba(0, 0, 0, 0.6);
             z-index: 100;
             display: flex;
             align-items: center;
@@ -169,7 +169,7 @@
             padding: 20px;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.25s ease;
         }
         .love-time-overlay.visible {
             opacity: 1;
@@ -177,51 +177,39 @@
         }
         .love-time-card {
             width: 100%;
-            max-width: 340px;
-            background: radial-gradient(circle at 50% 0%, rgba(38, 34, 52, 0.95) 0%, rgba(12, 12, 18, 0.96) 75%);
-            border: 1px solid rgba(255, 240, 210, 0.28);
-            border-radius: 28px;
-            padding: 24px 18px 20px 18px;
-            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.85), 0 0 25px rgba(255, 245, 220, 0.08);
+            max-width: 310px;
+            background: rgba(0, 0, 0, 0.8); /* #CC000000 مشابه دیالوگ خروج */
+            border: 1px solid rgba(255, 255, 255, 0.25); /* #40FFFFFF مشابه دیالوگ خروج */
+            border-radius: 24px;
+            padding: 24px 20px;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             text-align: center;
-            transform: scale(0.88) translateY(12px);
-            transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
-            direction: rtl;
+            transform: scale(0.92);
+            transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+            direction: ltr;
         }
         .love-time-overlay.visible .love-time-card {
-            transform: scale(1) translateY(0);
+            transform: scale(1);
         }
         .modal-heart-icon {
-            width: 34px;
-            height: 34px;
+            width: 28px;
+            height: 28px;
             fill: #ffffff;
-            margin: 0 auto 10px auto;
+            margin: 0 auto 18px auto;
             display: block;
             animation: realisticHeartBeat 0.8s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
-        }
-        .love-time-title {
-            color: #ffffff;
-            font-size: 0.92rem;
-            font-weight: 600;
-            margin-bottom: 4px;
-            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
-        }
-        .love-time-subtitle {
-            color: rgba(255, 235, 200, 0.72);
-            font-size: 0.74rem;
-            margin-bottom: 18px;
         }
         .time-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 8px;
             direction: ltr;
-            margin-bottom: 16px;
         }
         .time-unit-box {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.14);
-            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 14px;
             padding: 10px 4px;
             display: flex;
             flex-direction: column;
@@ -230,23 +218,16 @@
         }
         .time-unit-val {
             color: #ffffff;
-            font-size: 1.15rem;
-            font-weight: 700;
+            font-size: 1.1rem;
+            font-weight: 600;
             font-family: monospace;
             font-variant-numeric: tabular-nums;
-            text-shadow: 0 0 8px rgba(255, 255, 255, 0.35);
         }
         .time-unit-label {
             color: rgba(255, 255, 255, 0.65);
             font-size: 0.68rem;
-            margin-top: 3px;
-        }
-        .love-time-footer {
-            color: rgba(255, 255, 255, 0.82);
-            font-size: 0.76rem;
-            line-height: 1.6;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            padding-top: 12px;
+            margin-top: 4px;
+            letter-spacing: 0.5px;
         }
 
         .track-list {
@@ -374,6 +355,7 @@
             width: 100%;
         }
 
+        /* ====== کارت سه‌بعدی کاور (هم‌شکل با باکس خروج) ====== */
         .cover-scene {
             width: 210px;
             height: 210px;
@@ -392,7 +374,7 @@
             -webkit-transform-style: preserve-3d;
             transition: transform 0.85s cubic-bezier(0.2, 0.85, 0.25, 1.08);
             will-change: transform;
-            border-radius: 30px;
+            border-radius: 24px;
         }
         .cover-card-3d.is-flipped {
             transform: rotateY(180deg) scale(1.03);
@@ -403,33 +385,15 @@
             left: 0;
             width: 100%;
             height: 100%;
-            border-radius: 30px;
+            border-radius: 24px;
             backface-visibility: hidden;
             -webkit-backface-visibility: hidden;
             overflow: hidden;
-            box-shadow: 0 14px 32px rgba(0, 0, 0, 0.75);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.7);
         }
         .cover-face-front {
-            background: #111;
-            border: 1px solid rgba(255, 255, 255, 0.14);
-        }
-        .cover-face::after {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -60%;
-            width: 55%;
-            height: 200%;
-            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.18) 50%, rgba(255,255,255,0) 100%);
-            transform: rotate(25deg) translateX(-180%);
-            transition: transform 0.85s cubic-bezier(0.22, 1, 0.36, 1);
-            pointer-events: none;
-        }
-        .cover-card-3d.is-flipped .cover-face-front::after {
-            transform: rotate(25deg) translateX(420%);
-        }
-        .cover-card-3d:not(.is-flipped) .cover-face-back::after {
-            transform: rotate(25deg) translateX(420%);
+            background: #000000;
+            border: 1px solid rgba(255, 255, 255, 0.25);
         }
         .player-cover {
             width: 100%;
@@ -437,67 +401,27 @@
             object-fit: cover;
             display: block;
         }
-        .flip-hint-badge {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            background: rgba(0, 0, 0, 0.65);
-            border: 1px solid rgba(255, 245, 220, 0.4);
-            color: #fff8e7;
+        /* پشت کاور: دقیقاً به شکل باکس خروج و فقط حاوی متن انگلیسی */
+        .cover-face-back {
+            transform: rotateY(180deg);
+            background: rgba(0, 0, 0, 0.8); /* #CC000000 */
+            border: 1px solid rgba(255, 255, 255, 0.25); /* #40FFFFFF */
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            padding: 20px 18px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.82rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-            animation: softPulse 2.5s infinite ease-in-out;
-            pointer-events: none;
-        }
-        @keyframes softPulse {
-            0%, 100% { transform: scale(1); opacity: 0.8; }
-            50% { transform: scale(1.12); opacity: 1; }
-        }
-        .cover-face-back {
-            transform: rotateY(180deg);
-            background: radial-gradient(circle at 20% 20%, #1c1829 0%, #09080f 65%, #000000 100%);
-            border: 1px solid rgba(255, 235, 200, 0.32);
-            box-shadow: 0 14px 32px rgba(0, 0, 0, 0.85), inset 0 0 22px rgba(255, 230, 190, 0.07);
-            padding: 18px 16px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: space-between;
             text-align: center;
-        }
-        .note-header-icon {
-            color: #fff2cc;
-            font-size: 1.05rem;
-            letter-spacing: 3px;
-            opacity: 0.9;
-            text-shadow: 0 0 8px rgba(255, 240, 200, 0.5);
         }
         .note-body-text {
             color: #ffffff;
-            font-size: 0.86rem;
+            font-size: 0.88rem;
             line-height: 1.65;
-            max-height: 130px;
+            max-height: 100%;
             overflow-y: auto;
-            padding: 2px 4px;
             font-weight: 400;
-            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .note-footer-sign {
-            font-size: 0.7rem;
-            color: rgba(255, 235, 205, 0.65);
-            letter-spacing: 1px;
-            border-top: 1px solid rgba(255, 255, 255, 0.12);
-            padding-top: 6px;
-            width: 75%;
+            direction: ltr;
         }
 
         .player-lyrics {
@@ -650,34 +574,29 @@
 
     <canvas id="stars-canvas"></canvas>
 
-    <!-- پنجره شیشه‌ای جزئیات زمان عاشقی و ضربان قلب -->
+    <!-- باکس شیشه‌ای زمان (فقط قلب تپنده و روز/ساعت/دقیقه/ثانیه به انگلیسی) -->
     <div id="love-time-overlay" class="love-time-overlay">
         <div class="love-time-card">
             <svg class="modal-heart-icon" viewBox="0 0 24 24">
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
             </svg>
-            <div class="love-time-title">از لحظه‌ای که دیدمت...</div>
-            <div class="love-time-subtitle">۲۵ بهمن ۱۴۰۴ • ساعت ۱۰ شب</div>
             <div class="time-grid">
                 <div class="time-unit-box">
                     <span id="lt-days" class="time-unit-val">0</span>
-                    <span class="time-unit-label">روز</span>
+                    <span class="time-unit-label">Days</span>
                 </div>
                 <div class="time-unit-box">
-                    <span id="lt-hours" class="time-unit-val">0</span>
-                    <span class="time-unit-label">ساعت</span>
+                    <span id="lt-hours" class="time-unit-val">00</span>
+                    <span class="time-unit-label">Hours</span>
                 </div>
                 <div class="time-unit-box">
-                    <span id="lt-mins" class="time-unit-val">0</span>
-                    <span class="time-unit-label">دقیقه</span>
+                    <span id="lt-mins" class="time-unit-val">00</span>
+                    <span class="time-unit-label">Mins</span>
                 </div>
                 <div class="time-unit-box">
-                    <span id="lt-secs" class="time-unit-val">0</span>
-                    <span class="time-unit-label">ثانیه</span>
+                    <span id="lt-secs" class="time-unit-val">00</span>
+                    <span class="time-unit-label">Secs</span>
                 </div>
-            </div>
-            <div class="love-time-footer">
-                تپشِ قلبم در کنار تو: <span id="lt-beats">0</span> بار ♡
             </div>
         </div>
     </div>
@@ -714,12 +633,9 @@
                     <div id="cover-card-3d" class="cover-card-3d">
                         <div class="cover-face cover-face-front">
                             <img id="player-cover" class="player-cover" src="" alt="Cover">
-                            <div class="flip-hint-badge">♡</div>
                         </div>
                         <div class="cover-face cover-face-back">
-                            <div class="note-header-icon">✦ ☽ ✦</div>
-                            <div id="cover-love-note" class="note-body-text" dir="auto"></div>
-                            <div class="note-footer-sign">Forever Yours ♡</div>
+                            <div id="cover-love-note" class="note-body-text"></div>
                         </div>
                     </div>
                 </div>
@@ -766,18 +682,19 @@
             "song10.mp3": { title: "Lovers Rock", artist: "TV Girl", cover: "file:///android_asset/media/images/cover10.jpg" }
         };
 
+        // متن‌های انگلیسی پشت کاور
         const loveNotes = {
-            "song1.mp3": "هر بار که این آهنگ پلی میشه، فقط تصویر چشمای تو میاد جلوی چشمم... تو قشنگ‌ترین اتفاق زندگی منی ♡",
-            "song2.mp3": "حتی توی شلوغ‌ترین و تاریک‌ترین روزا، بودنِ تو کنارم همه‌چیز رو آروم می‌کنه.",
-            "song3.mp3": "تو همون کسی هستی که بدون هیچ حرفی، تمام حالِ دلم رو می‌فهمه.",
-            "song4.mp3": "کنار تو گذر زمان معنی نداره؛ کاش همه شب‌هامون به قشنگیِ حسِ این آهنگ باشه.",
-            "song5.mp3": "تو تنها درمان و آرامشِ قلب منی... صدات، خنده‌هات و نگاهت دنیای منه.",
-            "song6.mp3": "با تو تمام روزای سخت فراموش میشن و فقط خاطرات قشنگمون جا می‌مونه.",
-            "song7.mp3": "وقتی دستای تو رو می‌گیرم، انگار از کل زمین جدا میشم و روی ابرا راه میرم.",
-            "song8.mp3": "صدای بارون و این ملودی، منو یادِ قشنگ‌ترین لحظه‌هایی می‌ندازه که به تو فکر می‌کنم.",
-            "song9.mp3": "گرمای وجودت، قشنگ‌ترین حسِ امنیتی هست که توی تمام عمرم تجربه کردم.",
-            "song10.mp3": "این آهنگ، موسیقیِ متنِ عشقِ ماست... خیلی دوستت دارم، بیشتر از هر چیزی توی این دنیا.",
-            "default": "این آهنگ رو با تمام عشقم برای تو گذاشتم تا هر وقت گوش میدی یادت بیفته چقدر برام عزیزی ♡"
+            "song1.mp3": "Every time this song plays, all I see is your eyes... You are the most beautiful part of my life.",
+            "song2.mp3": "Even on the darkest and loudest days, having you by my side brings me peace.",
+            "song3.mp3": "You're the only one who understands my heart without saying a single word.",
+            "song4.mp3": "Time stops when I'm with you. I wish every night felt just like this melody with you.",
+            "song5.mp3": "You are the only cure and peace for my soul... Your voice, your laugh, and your eyes are my whole world.",
+            "song6.mp3": "With you, all the hard days fade away and only our sweetest memories remain.",
+            "song7.mp3": "Holding your hands makes me feel like we're floating high above the whole world.",
+            "song8.mp3": "The sound of rain and this melody always remind me of the sweetest moments thinking of you.",
+            "song9.mp3": "Your warmth is the safest and sweetest feeling I have ever known.",
+            "song10.mp3": "This song is the soundtrack of our love... I love you more than words could ever say.",
+            "default": "I put this song here with all my love, so every time you listen, you remember how much you mean to me."
         };
 
         let tracks = [];
@@ -818,7 +735,6 @@
             }
         }
 
-        // ====== شمارنده زنده تپش قلب + ویبره دوضرب و باز شدن کادر شیشه‌ای با نگه داشتن انگشت ======
         function initHeartbeatCounter() {
             const numEl = document.getElementById('heartbeat-number');
             const boxEl = document.getElementById('heartbeat-box');
@@ -827,7 +743,6 @@
             const hoursEl = document.getElementById('lt-hours');
             const minsEl = document.getElementById('lt-mins');
             const secsEl = document.getElementById('lt-secs');
-            const beatsEl = document.getElementById('lt-beats');
 
             if (!numEl || !boxEl || !overlayEl) return;
 
@@ -839,10 +754,7 @@
                 const nowMs = Date.now();
                 const elapsedSeconds = Math.max(0, Math.floor((nowMs - startTimeMs) / 1000));
                 const totalBeats = Math.floor(((nowMs - startTimeMs) / 1000) * beatsPerSecond);
-                const formattedBeats = Math.max(0, totalBeats).toLocaleString('en-US');
-
-                numEl.innerText = formattedBeats;
-                if (beatsEl) beatsEl.innerText = formattedBeats;
+                numEl.innerText = Math.max(0, totalBeats).toLocaleString('en-US');
 
                 const d = Math.floor(elapsedSeconds / 86400);
                 const h = Math.floor((elapsedSeconds % 86400) / 3600);
