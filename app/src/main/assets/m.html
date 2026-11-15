@@ -71,6 +71,7 @@
             text-align: center;
             width: 100%;
             margin-bottom: 14px;
+            position: relative;
         }
         .main-footer {
             position: absolute;
@@ -91,7 +92,7 @@
             margin: 0 auto;
         }
 
-        /* ====== قلب تپنده با قابلیت لمس برای حس ضربان در دست ====== */
+        /* ====== قلب تپنده و شمارنده (بدون بک‌گراند اضافی هنگام لمس) ====== */
         .heartbeat-counter-box {
             display: inline-flex;
             align-items: center;
@@ -101,11 +102,11 @@
             padding: 5px 14px;
             direction: ltr;
             cursor: pointer;
-            border-radius: 20px;
-            transition: background 0.2s ease;
+            background: transparent !important;
+            transition: transform 0.2s ease;
         }
-        .heartbeat-counter-box:active {
-            background: rgba(255, 255, 255, 0.08);
+        .heartbeat-counter-box.pressing {
+            transform: scale(1.08);
         }
         .beating-heart-svg {
             width: 15px;
@@ -151,6 +152,101 @@
             font-variant-numeric: tabular-nums;
             letter-spacing: 0.9px;
             text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+        }
+
+        /* ====== کادر شیشه‌ای جزئیات زمان عاشقی (Love Time Modal) ====== */
+        .love-time-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.65);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .love-time-overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .love-time-card {
+            width: 100%;
+            max-width: 340px;
+            background: radial-gradient(circle at 50% 0%, rgba(38, 34, 52, 0.95) 0%, rgba(12, 12, 18, 0.96) 75%);
+            border: 1px solid rgba(255, 240, 210, 0.28);
+            border-radius: 28px;
+            padding: 24px 18px 20px 18px;
+            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.85), 0 0 25px rgba(255, 245, 220, 0.08);
+            text-align: center;
+            transform: scale(0.88) translateY(12px);
+            transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+            direction: rtl;
+        }
+        .love-time-overlay.visible .love-time-card {
+            transform: scale(1) translateY(0);
+        }
+        .modal-heart-icon {
+            width: 34px;
+            height: 34px;
+            fill: #ffffff;
+            margin: 0 auto 10px auto;
+            display: block;
+            animation: realisticHeartBeat 0.8s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+        }
+        .love-time-title {
+            color: #ffffff;
+            font-size: 0.92rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+        .love-time-subtitle {
+            color: rgba(255, 235, 200, 0.72);
+            font-size: 0.74rem;
+            margin-bottom: 18px;
+        }
+        .time-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            direction: ltr;
+            margin-bottom: 16px;
+        }
+        .time-unit-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 16px;
+            padding: 10px 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .time-unit-val {
+            color: #ffffff;
+            font-size: 1.15rem;
+            font-weight: 700;
+            font-family: monospace;
+            font-variant-numeric: tabular-nums;
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.35);
+        }
+        .time-unit-label {
+            color: rgba(255, 255, 255, 0.65);
+            font-size: 0.68rem;
+            margin-top: 3px;
+        }
+        .love-time-footer {
+            color: rgba(255, 255, 255, 0.82);
+            font-size: 0.76rem;
+            line-height: 1.6;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 12px;
         }
 
         .track-list {
@@ -539,7 +635,7 @@
             height: 7px;
             background: white;
             border-radius: 50%;
-            box-shadow: 0 0 8px rgba(255,255,255,0.8);
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
             margin-left: 5px;
             opacity: 0;
             animation: smoothFadeIn 0.4s ease forwards;
@@ -554,12 +650,43 @@
 
     <canvas id="stars-canvas"></canvas>
 
+    <!-- پنجره شیشه‌ای جزئیات زمان عاشقی و ضربان قلب -->
+    <div id="love-time-overlay" class="love-time-overlay">
+        <div class="love-time-card">
+            <svg class="modal-heart-icon" viewBox="0 0 24 24">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+            <div class="love-time-title">از لحظه‌ای که دیدمت...</div>
+            <div class="love-time-subtitle">۲۵ بهمن ۱۴۰۴ • ساعت ۱۰ شب</div>
+            <div class="time-grid">
+                <div class="time-unit-box">
+                    <span id="lt-days" class="time-unit-val">0</span>
+                    <span class="time-unit-label">روز</span>
+                </div>
+                <div class="time-unit-box">
+                    <span id="lt-hours" class="time-unit-val">0</span>
+                    <span class="time-unit-label">ساعت</span>
+                </div>
+                <div class="time-unit-box">
+                    <span id="lt-mins" class="time-unit-val">0</span>
+                    <span class="time-unit-label">دقیقه</span>
+                </div>
+                <div class="time-unit-box">
+                    <span id="lt-secs" class="time-unit-val">0</span>
+                    <span class="time-unit-label">ثانیه</span>
+                </div>
+            </div>
+            <div class="love-time-footer">
+                تپشِ قلبم در کنار تو: <span id="lt-beats">0</span> بار ♡
+            </div>
+        </div>
+    </div>
+
     <div id="main-page" class="main-page">
         <div class="main-scroll-area">
             <div class="content-wrapper">
                 <div class="main-header">
                     <img src="file:///android_asset/media/images/header.png" alt="My Love's Favorites" class="header-footer-image">
-                    <!-- با لمس این قلب، ضربان قلب در دست حس می‌شود -->
                     <div id="heartbeat-box" class="heartbeat-counter-box">
                         <svg class="beating-heart-svg" viewBox="0 0 24 24">
                             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
@@ -675,33 +802,94 @@
             }
         }
 
-        function triggerVibration() {
+        function triggerSingleHeartbeatPulse() {
             if (window.AndroidBridge && typeof window.AndroidBridge.triggerHeartbeatVibration === 'function') {
                 window.AndroidBridge.triggerHeartbeatVibration();
+            } else if (navigator.vibrate) {
+                navigator.vibrate([45, 95, 85]);
             }
         }
 
+        function stopHeartbeatPulse() {
+            if (window.AndroidBridge && typeof window.AndroidBridge.stopHeartbeatVibration === 'function') {
+                window.AndroidBridge.stopHeartbeatVibration();
+            } else if (navigator.vibrate) {
+                navigator.vibrate(0);
+            }
+        }
+
+        // ====== شمارنده زنده تپش قلب + ویبره دوضرب و باز شدن کادر شیشه‌ای با نگه داشتن انگشت ======
         function initHeartbeatCounter() {
             const numEl = document.getElementById('heartbeat-number');
             const boxEl = document.getElementById('heartbeat-box');
-            if (!numEl || !boxEl) return;
+            const overlayEl = document.getElementById('love-time-overlay');
+            const daysEl = document.getElementById('lt-days');
+            const hoursEl = document.getElementById('lt-hours');
+            const minsEl = document.getElementById('lt-mins');
+            const secsEl = document.getElementById('lt-secs');
+            const beatsEl = document.getElementById('lt-beats');
+
+            if (!numEl || !boxEl || !overlayEl) return;
 
             const startTimeMs = new Date("2026-02-14T22:00:00+03:30").getTime();
             const beatsPerSecond = 1.25;
+            let vibrationInterval = null;
 
-            function updateCounter() {
+            function updateAllTimeDisplays() {
                 const nowMs = Date.now();
-                const elapsedSeconds = Math.max(0, (nowMs - startTimeMs) / 1000);
-                const totalBeats = Math.floor(elapsedSeconds * beatsPerSecond);
-                numEl.innerText = totalBeats.toLocaleString('en-US');
+                const elapsedSeconds = Math.max(0, Math.floor((nowMs - startTimeMs) / 1000));
+                const totalBeats = Math.floor(((nowMs - startTimeMs) / 1000) * beatsPerSecond);
+                const formattedBeats = Math.max(0, totalBeats).toLocaleString('en-US');
+
+                numEl.innerText = formattedBeats;
+                if (beatsEl) beatsEl.innerText = formattedBeats;
+
+                const d = Math.floor(elapsedSeconds / 86400);
+                const h = Math.floor((elapsedSeconds % 86400) / 3600);
+                const m = Math.floor((elapsedSeconds % 3600) / 60);
+                const s = elapsedSeconds % 60;
+
+                if (daysEl) daysEl.innerText = d;
+                if (hoursEl) hoursEl.innerText = h < 10 ? '0' + h : h;
+                if (minsEl) minsEl.innerText = m < 10 ? '0' + m : m;
+                if (secsEl) secsEl.innerText = s < 10 ? '0' + s : s;
             }
 
-            updateCounter();
-            setInterval(updateCounter, 800);
+            updateAllTimeDisplays();
+            setInterval(updateAllTimeDisplays, 800);
 
-            boxEl.addEventListener('click', () => {
-                triggerVibration();
+            function startHeartbeatExperience(e) {
+                if (e && e.cancelable) e.preventDefault();
+                boxEl.classList.add('pressing');
+                updateAllTimeDisplays();
+                overlayEl.classList.add('visible');
+
+                triggerSingleHeartbeatPulse();
+                if (vibrationInterval) clearInterval(vibrationInterval);
+                vibrationInterval = setInterval(triggerSingleHeartbeatPulse, 800);
+            }
+
+            function stopHeartbeatExperience() {
+                boxEl.classList.remove('pressing');
+                overlayEl.classList.remove('visible');
+                if (vibrationInterval) {
+                    clearInterval(vibrationInterval);
+                    vibrationInterval = null;
+                }
+                stopHeartbeatPulse();
+            }
+
+            boxEl.addEventListener('touchstart', startHeartbeatExperience, { passive: false });
+            boxEl.addEventListener('touchend', stopHeartbeatExperience);
+            boxEl.addEventListener('touchcancel', stopHeartbeatExperience);
+
+            boxEl.addEventListener('mousedown', startHeartbeatExperience);
+            window.addEventListener('mouseup', () => {
+                if (vibrationInterval) stopHeartbeatExperience();
             });
+
+            overlayEl.addEventListener('touchstart', stopHeartbeatExperience);
+            overlayEl.addEventListener('click', stopHeartbeatExperience);
         }
 
         function initStarsCanvas() {
