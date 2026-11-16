@@ -15,7 +15,10 @@ import android.graphics.Color;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.RectF;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
+import android.graphics.RadialGradient;
+import android.graphics.Rect;
 import android.graphics.Shader;
 import android.graphics.drawable.Icon;
 import android.media.MediaMetadataRetriever;
@@ -50,11 +53,13 @@ public class MusicNotificationService extends Service {
     private MediaSessionCompat mediaSession;
     private String lastCoverKey = "";
     private Bitmap cachedArtwork = null;
+    private Icon smallMusicIcon = null;
 
     @Override
     public void onCreate() {
         super.onCreate();
         createNotificationChannel();
+        smallMusicIcon = createCleanSmallIcon();
 
         mediaSession = new MediaSessionCompat(this, "MusicLoveBoxSession");
         mediaSession.setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS | MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS);
@@ -121,7 +126,7 @@ public class MusicNotificationService extends Service {
         if (!key.equals(lastCoverKey) || cachedArtwork == null) {
             lastCoverKey = key;
             Bitmap rawCover = loadTrackCover(coverUrl, mp3Url);
-            cachedArtwork = createStarryCompositeArtwork(rawCover, title.hashCode());
+            cachedArtwork = createSeamlessStarryCover(rawCover, title.hashCode());
         }
 
         int state = isPlaying ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED;
@@ -159,14 +164,13 @@ public class MusicNotificationService extends Service {
         PendingIntent playPauseIntent = createActionIntent(ACTION_PLAY_PAUSE, 2);
         PendingIntent nextIntent = createActionIntent(ACTION_NEXT, 3);
 
-        Notification.Action prevAction = createNotificationAction("media/images/prev.png", android.R.drawable.ic_media_previous, "Previous", prevIntent);
-        Notification.Action playPauseAction = createNotificationAction(
-                isPlaying ? "media/images/pause.png" : "media/images/play.png",
-                isPlaying ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play,
-                isPlaying ? "Pause" : "Play",
-                playPauseIntent
-        );
-        Notification.Action nextAction = createNotificationAction("media/images/next.png", android.R.drawable.ic_media_next, "Next", nextIntent);
+        Notification.Action prevAction = new Notification.Action.Builder(
+                createCleanTransportIcon("prev"), "Previous", prevIntent).build();
+        Notification.Action playPauseAction = new Notification.Action.Builder(
+                createCleanTransportIcon(isPlaying ? "pause" : "play"),
+                isPlaying ? "Pause" : "Play", playPauseIntent).build();
+        Notification.Action nextAction = new Notification.Action.Builder(
+                createCleanTransportIcon("next"), "Next", nextIntent).build();
 
         Notification.MediaStyle mediaStyle = new Notification.MediaStyle()
                 .setMediaSession((android.media.session.MediaSession.Token) mediaSession.getSessionToken().getToken())
@@ -179,11 +183,22 @@ public class MusicNotificationService extends Service {
             builder = new Notification.Builder(this);
         }
 
+        if (smallMusicIcon != null) {
+            builder.setSmallIcon(smallMusicIcon);
+        } else {
+            builder.setSmallIcon(R.drawable.ic_launcher);
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            builder.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE);
+        }
+
         Notification notification = builder
-                .setSmallIcon(R.drawable.ic_launcher)
                 .setContentTitle(title)
                 .setContentText(artist)
                 .setLargeIcon(cachedArtwork)
+                .setColor(Color.parseColor("#08080E"))
+                .setColorized(true)
                 .setContentIntent(contentIntent)
                 .setStyle(mediaStyle)
                 .addAction(prevAction)
@@ -211,20 +226,65 @@ public class MusicNotificationService extends Service {
         }
     }
 
-    private Notification.Action createNotificationAction(String assetPath, int fallbackRes, String title, PendingIntent intent) {
-        Icon icon = null;
-        try (InputStream is = getAssets().open(assetPath)) {
-            Bitmap bmp = BitmapFactory.decodeStream(is);
-            if (bmp != null) {
-                Bitmap scaled = Bitmap.createScaledBitmap(bmp, 72, 72, true);
-                icon = Icon.createWithBitmap(scaled);
-            }
-        } catch (Exception ignored) {}
+    // ساخت آیکون کوچک شفاف (نت موسیقی ظریف) برای بالای نوتیفیکیشن تا کادر سفید توپر نیفتد
+    private Icon createCleanSmallIcon() {
+        int size = 72;
+        Bitmap bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(bmp);
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        p.setColor(Color.WHITE);
+        p.setStyle(Paint.Style.FILL);
 
-        if (icon == null) {
-            icon = Icon.createWithResource(this, fallbackRes);
+        // رسم نت موسیقی استاندارد (♪)
+        c.drawOval(14f, 42f, 36f, 60f, p);
+        c.drawRect(30f, 14f, 36f, 52f, p);
+        Path flag = new Path();
+        flag.moveTo(36f, 14f);
+        flag.cubicTo(52f, 16f, 58f, 26f, 54f, 38f);
+        flag.cubicTo(52f, 28f, 44f, 24f, 36f, 24f);
+        flag.close();
+        c.drawPath(flag, p);
+
+        return Icon.createWithBitmap(bmp);
+    }
+
+    // ساخت آیکون‌های تمیز، تیز و استاندارد برای دکمه‌های نوتیفیکیشن
+    private Icon createCleanTransportIcon(String type) {
+        int size = 96;
+        Bitmap bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(bmp);
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        p.setColor(Color.WHITE);
+        p.setStyle(Paint.Style.FILL);
+
+        if ("play".equals(type)) {
+            Path path = new Path();
+            path.moveTo(30f, 20f);
+            path.lineTo(74f, 48f);
+            path.lineTo(30f, 76f);
+            path.close();
+            c.drawPath(path, p);
+        } else if ("pause".equals(type)) {
+            c.drawRoundRect(26f, 20f, 42f, 76f, 5f, 5f, p);
+            c.drawRoundRect(54f, 20f, 70f, 76f, 5f, 5f, p);
+        } else if ("next".equals(type)) {
+            Path path = new Path();
+            path.moveTo(22f, 22f);
+            path.lineTo(62f, 48f);
+            path.lineTo(22f, 74f);
+            path.close();
+            c.drawPath(path, p);
+            c.drawRoundRect(64f, 22f, 74f, 74f, 4f, 4f, p);
+        } else if ("prev".equals(type)) {
+            c.drawRoundRect(22f, 22f, 32f, 74f, 4f, 4f, p);
+            Path path = new Path();
+            path.moveTo(74f, 22f);
+            path.lineTo(34f, 48f);
+            path.lineTo(74f, 74f);
+            path.close();
+            c.drawPath(path, p);
         }
-        return new Notification.Action.Builder(icon, title, intent).build();
+        return Icon.createWithBitmap(bmp);
     }
 
     private PendingIntent createActionIntent(String action, int requestCode) {
@@ -259,70 +319,73 @@ public class MusicNotificationService extends Service {
         return null;
     }
 
-    // ساخت تصویر اختصاصی نوتیفیکیشن: پس‌زمینه آسمان پرستاره + کاور آهنگ در سمت راست
-    private Bitmap createStarryCompositeArtwork(Bitmap cover, int seed) {
-        int w = 800;
-        int h = 420;
-        Bitmap output = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+    // ساخت تصویر مربعی استاندارد (600x600): کاور آهنگ در سمت راست که به نرمی در آسمان پرستاره سمت چپ محو می‌شود
+    private Bitmap createSeamlessStarryCover(Bitmap cover, int seed) {
+        int size = 600;
+        Bitmap output = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(output);
 
-        // ۱. پس‌زمینه مشکی شب
-        Paint bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        bgPaint.setShader(new LinearGradient(0, 0, w, h,
-                Color.parseColor("#020205"),
-                Color.parseColor("#0A0A12"),
-                Shader.TileMode.CLAMP));
-        canvas.drawRect(0, 0, w, h, bgPaint);
+        // ۱. پس‌زمینه مشکی مطلق
+        canvas.drawColor(Color.parseColor("#040408"));
 
-        // ۲. رسم ستاره‌های درخشان در آسمان
+        // ۲. اگر کاور وجود دارد، آن را در نیمه راست قرار می‌دهیم و لبه‌هایش را به نرمی در مشکی سمت چپ محو (Blend) می‌کنیم
+        if (cover != null) {
+            Bitmap layer = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+            Canvas layerCanvas = new Canvas(layer);
+
+            // قرار دادن کاور در سمت راست بوم
+            Rect destRect = new Rect(140, 0, size, size);
+            int minDim = Math.min(cover.getWidth(), cover.getHeight());
+            int srcX = (cover.getWidth() - minDim) / 2;
+            int srcY = (cover.getHeight() - minDim) / 2;
+            Rect srcRect = new Rect(srcX, srcY, srcX + minDim, srcY + minDim);
+
+            Paint bmpPaint = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.ANTI_ALIAS_FLAG);
+            layerCanvas.drawBitmap(cover, srcRect, destRect, bmpPaint);
+
+            // ماسک محوشونده افقی (از چپ کاملاً شفاف، به راست کاملاً واضح)
+            Paint maskPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            maskPaint.setShader(new LinearGradient(140f, 0f, 420f, 0f,
+                    new int[]{Color.TRANSPARENT, Color.argb(140, 0, 0, 0), Color.BLACK},
+                    new float[]{0f, 0.5f, 1f},
+                    Shader.TileMode.CLAMP));
+            maskPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_IN));
+            layerCanvas.drawRect(0, 0, size, size, maskPaint);
+
+            // کمی تیره‌تر کردن کلی کاور تا متن سفید نوتیفیکیشن همیشه خوانا باشد
+            Paint dimPaint = new Paint();
+            dimPaint.setColor(Color.argb(65, 0, 0, 0));
+            layerCanvas.drawRect(0, 0, size, size, dimPaint);
+
+            canvas.drawBitmap(layer, 0, 0, null);
+        }
+
+        // ۳. رسم آسمان پرستاره طبیعی روی نیمه چپ و میانی
         Random rnd = new Random(seed);
         Paint starPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        for (int i = 0; i < 95; i++) {
-            float sx = rnd.nextFloat() * w;
-            float sy = rnd.nextFloat() * h;
-            boolean isBright = i < 14;
-            float sr = isBright ? (1.8f + rnd.nextFloat() * 1.6f) : (0.8f + rnd.nextFloat() * 1.2f);
-            int alpha = isBright ? (180 + rnd.nextInt(75)) : (70 + rnd.nextInt(130));
+        for (int i = 0; i < 110; i++) {
+            // تمرکز بیشتر ستاره‌ها در سمت چپ و وسط (زیر اسم آهنگ)
+            float sx = rnd.nextFloat() * (size * 0.85f);
+            float sy = rnd.nextFloat() * size;
+            boolean isBright = i < 16;
+            float sr = isBright ? (1.6f + rnd.nextFloat() * 1.5f) : (0.7f + rnd.nextFloat() * 1.1f);
+            int alpha = isBright ? (190 + rnd.nextInt(65)) : (75 + rnd.nextInt(130));
 
             if (isBright) {
-                starPaint.setColor(Color.argb(alpha / 3, 255, 252, 240));
-                canvas.drawCircle(sx, sy, sr * 3.5f, starPaint);
+                RadialGradient glow = new RadialGradient(sx, sy, sr * 4.2f,
+                        Color.argb(alpha / 2, 255, 250, 235),
+                        Color.TRANSPARENT, Shader.TileMode.CLAMP);
+                starPaint.setShader(glow);
+                canvas.drawCircle(sx, sy, sr * 4.2f, starPaint);
+                starPaint.setShader(null);
+
                 starPaint.setColor(Color.argb(alpha, 255, 255, 255));
+                starPaint.setStrokeWidth(0.9f);
                 canvas.drawLine(sx - sr * 3.2f, sy, sx + sr * 3.2f, sy, starPaint);
                 canvas.drawLine(sx, sy - sr * 3.2f, sx, sy + sr * 3.2f, starPaint);
             }
             starPaint.setColor(Color.argb(alpha, 255, 255, 255));
             canvas.drawCircle(sx, sy, sr, starPaint);
-        }
-
-        // ۳. قرار دادن کاور آهنگ در سمت راست کارت با حاشیه ظریف و گوشه گرد
-        if (cover != null) {
-            float coverSize = 230f;
-            float rightMargin = 48f;
-            float left = w - coverSize - rightMargin;
-            float top = (h - coverSize) / 2f;
-            RectF rect = new RectF(left, top, left + coverSize, top + coverSize);
-
-            // سایه نرم پشت کاور
-            Paint shadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            shadowPaint.setColor(Color.argb(190, 0, 0, 0));
-            shadowPaint.setShadowLayer(22f, 0f, 8f, Color.BLACK);
-            canvas.drawRoundRect(rect, 34f, 34f, shadowPaint);
-
-            // برش گوشه گرد کاور
-            canvas.save();
-            Path clipPath = new Path();
-            clipPath.addRoundRect(rect, 34f, 34f, Path.Direction.CW);
-            canvas.clipPath(clipPath);
-            canvas.drawBitmap(cover, null, rect, new Paint(Paint.FILTER_BITMAP_FLAG | Paint.ANTI_ALIAS_FLAG));
-            canvas.restore();
-
-            // حاشیه ظریف دور کاور
-            Paint borderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            borderPaint.setStyle(Paint.Style.STROKE);
-            borderPaint.setStrokeWidth(2.5f);
-            borderPaint.setColor(Color.argb(65, 255, 255, 255));
-            canvas.drawRoundRect(rect, 34f, 34f, borderPaint);
         }
 
         return output;
