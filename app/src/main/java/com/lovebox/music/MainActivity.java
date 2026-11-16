@@ -158,6 +158,21 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
+                String urlStr = uri.toString();
+
+                // ۱. اگر عکس جدیدی (مثل header.png یا quote.png) از گیت‌هاب آپدیت شده باشد، نسخه جدید را نشان بده
+                if (urlStr.startsWith("file:///android_asset/media/images/")) {
+                    String imgName = urlStr.replace("file:///android_asset/media/images/", "");
+                    File cloudImg = new File(new File(getFilesDir(), "cloud_images"), imgName);
+                    if (cloudImg.exists() && cloudImg.length() > 0) {
+                        try {
+                            String mime = imgName.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg";
+                            return new WebResourceResponse(mime, "UTF-8", new FileInputStream(cloudImg));
+                        } catch (Exception ignored) {}
+                    }
+                }
+
+                // ۲. استخراج کاور از داخل فایل MP3
                 if ("https".equals(uri.getScheme()) && "lovebox.cover".equals(uri.getHost())) {
                     String path = uri.getPath();
                     if (path != null && path.length() > 1) {
@@ -171,6 +186,16 @@ public class MainActivity extends AppCompatActivity {
                 return super.shouldInterceptRequest(view, request);
             }
         });
+
+        // اگر نسخه آپدیت‌شده‌ای از m.html از گیت‌هاب دریافت شده بود، آن را اجرا کن؛ وگرنه نسخه اصلی داخل برنامه
+        File cloudHtml = new File(getFilesDir(), "cloud_m.html");
+        if (cloudHtml.exists() && cloudHtml.length() > 500) {
+            try (InputStream is = new FileInputStream(cloudHtml)) {
+                String html = readStreamText(is);
+                webView.loadDataWithBaseURL("file:///android_asset/", html, "text/html", "UTF-8", null);
+                return;
+            } catch (Exception ignored) {}
+        }
         webView.loadUrl("file:///android_asset/m.html");
     }
 
@@ -278,37 +303,48 @@ public class MainActivity extends AppCompatActivity {
             } catch (Exception ignored) {}
         }
 
-        // دریافت یادداشت‌های عاشقانه آپدیت شده از گیت‌هاب
         @JavascriptInterface
         public String getCloudNotesJson() {
             SharedPreferences prefs = getSharedPreferences("lovebox_cloud", Context.MODE_PRIVATE);
             return prefs.getString("notes_json", "{}");
         }
 
-        // شروع همگام‌سازی خودکار در پس‌زمینه با گیت‌هاب
+        // بررسی خودکار آپدیت‌های ظاهر برنامه (m.html)، یادداشت‌ها، عکس‌ها و آهنگ‌ها در گیت‌هاب
         @JavascriptInterface
         public void syncWithCloud() {
             if (isSyncing) return;
             isSyncing = true;
             new Thread(() -> {
-                boolean hasChanges = false;
+                boolean hasTrackOrNoteChanges = false;
+                SharedPreferences prefs = getSharedPreferences("lovebox_cloud", Context.MODE_PRIVATE);
+
                 try {
-                    // ۱. بررسی فایل notes.json در گیت‌هاب برای آپدیت متن‌های پشت کاور یا عنوان آهنگ‌ها
-                    String notesUrl = "https://cdn.jsdelivr.net/gh/" + GITHUB_OWNER + "/" + GITHUB_REPO + "@" + GITHUB_BRANCH + "/notes.json?t=" + System.currentTimeMillis();
-                    String notesContent = fetchUrlText(notesUrl);
-                    if (notesContent == null) {
-                        notesContent = fetchUrlText("https://raw.githubusercontent.com/" + GITHUB_OWNER + "/" + GITHUB_REPO + "/" + GITHUB_BRANCH + "/notes.json");
+                    // ۱. بررسی آپدیت شدن فایل m.html در گیت‌هاب (برای آپدیت ظاهر و امکانات از راه دور)
+                    String remoteHtml = fetchUrlText("https://raw.githubusercontent.com/" + GITHUB_OWNER + "/" + GITHUB_REPO + "/" + GITHUB_BRANCH + "/app/src/main/assets/m.html?t=" + System.currentTimeMillis());
+                    if (remoteHtml == null) {
+                        remoteHtml = fetchUrlText("https://cdn.jsdelivr.net/gh/" + GITHUB_OWNER + "/" + GITHUB_REPO + "@" + GITHUB_BRANCH + "/app/src/main/assets/m.html");
                     }
-                    if (notesContent != null && notesContent.trim().startsWith("{")) {
-                        SharedPreferences prefs = getSharedPreferences("lovebox_cloud", Context.MODE_PRIVATE);
-                        String oldNotes = prefs.getString("notes_json", "{}");
-                        if (!notesContent.equals(oldNotes)) {
-                            prefs.edit().putString("notes_json", notesContent).apply();
-                            hasChanges = true;
+                    if (remoteHtml != null && remoteHtml.contains("</html>")) {
+                        File cloudHtmlFile = new File(getFilesDir(), "cloud_m.html");
+                        try (FileOutputStream fos = new FileOutputStream(cloudHtmlFile)) {
+                            fos.write(remoteHtml.getBytes(StandardCharsets.UTF_8));
                         }
                     }
 
-                    // ۲. بررسی پوشه audios در گیت‌هاب برای دانلود خودکار آهنگ‌های جدید
+                    // ۲. بررسی فایل notes.json در گیت‌هاب
+                    String notesContent = fetchUrlText("https://raw.githubusercontent.com/" + GITHUB_OWNER + "/" + GITHUB_REPO + "/" + GITHUB_BRANCH + "/notes.json?t=" + System.currentTimeMillis());
+                    if (notesContent == null) {
+                        notesContent = fetchUrlText("https://cdn.jsdelivr.net/gh/" + GITHUB_OWNER + "/" + GITHUB_REPO + "@" + GITHUB_BRANCH + "/notes.json");
+                    }
+                    if (notesContent != null && notesContent.trim().startsWith("{")) {
+                        String oldNotes = prefs.getString("notes_json", "{}");
+                        if (!notesContent.equals(oldNotes)) {
+                            prefs.edit().putString("notes_json", notesContent).apply();
+                            hasTrackOrNoteChanges = true;
+                        }
+                    }
+
+                    // ۳. بررسی پوشه audios در گیت‌هاب برای دانلود آهنگ‌های جدید
                     String[] builtInAudios = getAssets().list("media/audios");
                     Set<String> builtInAudioSet = new HashSet<>();
                     if (builtInAudios != null) Collections.addAll(builtInAudioSet, builtInAudios);
@@ -323,23 +359,28 @@ public class MainActivity extends AppCompatActivity {
                         for (int i = 0; i < filesArray.length(); i++) {
                             JSONObject fileObj = filesArray.getJSONObject(i);
                             String name = fileObj.optString("name", "");
-                            if (name.toLowerCase().endsWith(".mp3") && !builtInAudioSet.contains(name)) {
+                            String sha = fileObj.optString("sha", "");
+                            if (name.toLowerCase().endsWith(".mp3")) {
+                                String savedSha = prefs.getString("audio_sha_" + name, "");
                                 File targetFile = new File(cloudAudioDir, name);
-                                long expectedSize = fileObj.optLong("size", -1);
-                                if (!targetFile.exists() || (expectedSize > 0 && targetFile.length() != expectedSize)) {
+
+                                if (!builtInAudioSet.contains(name) && (!targetFile.exists() || !sha.equals(savedSha))) {
                                     String cdnUrl = "https://cdn.jsdelivr.net/gh/" + GITHUB_OWNER + "/" + GITHUB_REPO + "@" + GITHUB_BRANCH + "/app/src/main/assets/media/audios/" + Uri.encode(name);
                                     boolean downloaded = downloadFile(cdnUrl, targetFile);
                                     if (!downloaded) {
                                         String rawUrl = fileObj.optString("download_url", "");
                                         if (!rawUrl.isEmpty()) downloaded = downloadFile(rawUrl, targetFile);
                                     }
-                                    if (downloaded) hasChanges = true;
+                                    if (downloaded) {
+                                        prefs.edit().putString("audio_sha_" + name, sha).apply();
+                                        hasTrackOrNoteChanges = true;
+                                    }
                                 }
                             }
                         }
                     }
 
-                    // ۳. بررسی پوشه images در گیت‌هاب برای دانلود کاورهای جدید (مثل cover11.jpg)
+                    // ۴. بررسی پوشه images در گیت‌هاب (هم کاورهای جدید و هم آپدیت عکس‌های قبلی مثل quote.png)
                     String[] builtInImages = getAssets().list("media/images");
                     Set<String> builtInImageSet = new HashSet<>();
                     if (builtInImages != null) Collections.addAll(builtInImageSet, builtInImages);
@@ -354,17 +395,25 @@ public class MainActivity extends AppCompatActivity {
                         for (int i = 0; i < imgArray.length(); i++) {
                             JSONObject imgObj = imgArray.getJSONObject(i);
                             String name = imgObj.optString("name", "");
-                            if ((name.toLowerCase().endsWith(".jpg") || name.toLowerCase().endsWith(".png")) && !builtInImageSet.contains(name)) {
+                            String sha = imgObj.optString("sha", "");
+                            if (name.toLowerCase().endsWith(".jpg") || name.toLowerCase().endsWith(".png")) {
+                                String savedSha = prefs.getString("img_sha_" + name, "");
                                 File targetImg = new File(cloudImageDir, name);
-                                long expectedSize = imgObj.optLong("size", -1);
-                                if (!targetImg.exists() || (expectedSize > 0 && targetImg.length() != expectedSize)) {
+
+                                // اگر عکس جدید است یا عکس قبلی را در گیت‌هاب عوض کرده‌اید، دانلودش کن
+                                if (savedSha.isEmpty() && builtInImageSet.contains(name)) {
+                                    prefs.edit().putString("img_sha_" + name, sha).apply();
+                                } else if (!sha.equals(savedSha) || (!builtInImageSet.contains(name) && !targetImg.exists())) {
                                     String cdnUrl = "https://cdn.jsdelivr.net/gh/" + GITHUB_OWNER + "/" + GITHUB_REPO + "@" + GITHUB_BRANCH + "/app/src/main/assets/media/images/" + Uri.encode(name);
                                     boolean downloaded = downloadFile(cdnUrl, targetImg);
                                     if (!downloaded) {
                                         String rawUrl = imgObj.optString("download_url", "");
                                         if (!rawUrl.isEmpty()) downloaded = downloadFile(rawUrl, targetImg);
                                     }
-                                    if (downloaded) hasChanges = true;
+                                    if (downloaded) {
+                                        prefs.edit().putString("img_sha_" + name, sha).apply();
+                                        hasTrackOrNoteChanges = true;
+                                    }
                                 }
                             }
                         }
@@ -374,7 +423,7 @@ public class MainActivity extends AppCompatActivity {
                     isSyncing = false;
                 }
 
-                if (hasChanges) {
+                if (hasTrackOrNoteChanges) {
                     runOnUiThread(() -> {
                         if (webView != null) {
                             webView.evaluateJavascript("if(typeof onCloudSyncUpdated === 'function') onCloudSyncUpdated();", null);
@@ -400,7 +449,6 @@ public class MainActivity extends AppCompatActivity {
                     Collections.addAll(cloudImageSet, cloudImageDir.list());
                 }
 
-                // نگهداری لیست تمام آهنگ‌ها (هم داخلی و هم دانلودشده از گیت‌هاب)
                 Map<String, Boolean> isCloudMap = new HashMap<>();
                 List<String> allMp3s = new ArrayList<>();
 
@@ -471,14 +519,14 @@ public class MainActivity extends AppCompatActivity {
 
                     int songNum = extractNumber(fileName);
                     String coverUrl;
-                    if (songNum != -1 && assetImageSet.contains("cover" + songNum + ".jpg")) {
-                        coverUrl = "file:///android_asset/media/images/cover" + songNum + ".jpg";
-                    } else if (songNum != -1 && assetImageSet.contains("cover" + songNum + ".png")) {
-                        coverUrl = "file:///android_asset/media/images/cover" + songNum + ".png";
-                    } else if (songNum != -1 && cloudImageSet.contains("cover" + songNum + ".jpg")) {
+                    if (songNum != -1 && cloudImageSet.contains("cover" + songNum + ".jpg")) {
                         coverUrl = Uri.fromFile(new File(cloudImageDir, "cover" + songNum + ".jpg")).toString();
                     } else if (songNum != -1 && cloudImageSet.contains("cover" + songNum + ".png")) {
                         coverUrl = Uri.fromFile(new File(cloudImageDir, "cover" + songNum + ".png")).toString();
+                    } else if (songNum != -1 && assetImageSet.contains("cover" + songNum + ".jpg")) {
+                        coverUrl = "file:///android_asset/media/images/cover" + songNum + ".jpg";
+                    } else if (songNum != -1 && assetImageSet.contains("cover" + songNum + ".png")) {
+                        coverUrl = "file:///android_asset/media/images/cover" + songNum + ".png";
                     } else {
                         coverUrl = "https://lovebox.cover/" + Uri.encode(fileName);
                     }
