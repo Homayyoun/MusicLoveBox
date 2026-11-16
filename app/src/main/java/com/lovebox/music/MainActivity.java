@@ -5,6 +5,7 @@ import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.AssetFileDescriptor;
 import android.graphics.Bitmap;
@@ -41,25 +42,39 @@ import androidx.appcompat.app.AppCompatActivity;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
+
+    private static final String GITHUB_OWNER = "Homayyoun";
+    private static final String GITHUB_REPO = "MusicLoveBox";
+    private static final String GITHUB_BRANCH = "main";
 
     private WebView webView;
     private boolean isPlayerPageOpen = false;
     private AudioManager audioManager;
     private AudioFocusRequest focusRequest;
     private Vibrator vibrator;
+    private boolean isSyncing = false;
 
     private final AudioManager.OnAudioFocusChangeListener focusChangeListener = focusChange -> {
         if (focusChange == AudioManager.AUDIOFOCUS_LOSS || focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
@@ -146,8 +161,8 @@ public class MainActivity extends AppCompatActivity {
                 if ("https".equals(uri.getScheme()) && "lovebox.cover".equals(uri.getHost())) {
                     String path = uri.getPath();
                     if (path != null && path.length() > 1) {
-                        String fileName = path.substring(1);
-                        byte[] coverBytes = extractEmbeddedCover("media/audios/" + fileName);
+                        String fileName = Uri.decode(path.substring(1));
+                        byte[] coverBytes = extractEmbeddedCover(fileName);
                         if (coverBytes != null) {
                             return new WebResourceResponse("image/jpeg", "UTF-8", new ByteArrayInputStream(coverBytes));
                         }
@@ -159,17 +174,23 @@ public class MainActivity extends AppCompatActivity {
         webView.loadUrl("file:///android_asset/m.html");
     }
 
-    private byte[] extractEmbeddedCover(String assetPath) {
+    private byte[] extractEmbeddedCover(String fileName) {
         MediaMetadataRetriever retriever = new MediaMetadataRetriever();
-        try (AssetFileDescriptor afd = getAssets().openFd(assetPath)) {
-            retriever.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
-            return retriever.getEmbeddedPicture();
+        try {
+            File cloudFile = new File(new File(getFilesDir(), "cloud_audios"), fileName);
+            if (cloudFile.exists()) {
+                retriever.setDataSource(cloudFile.getAbsolutePath());
+                return retriever.getEmbeddedPicture();
+            } else {
+                try (AssetFileDescriptor afd = getAssets().openFd("media/audios/" + fileName)) {
+                    retriever.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
+                    return retriever.getEmbeddedPicture();
+                }
+            }
         } catch (Exception e) {
             return null;
         } finally {
-            try {
-                retriever.release();
-            } catch (Exception ignored) {}
+            try { retriever.release(); } catch (Exception ignored) {}
         }
     }
 
@@ -257,76 +278,219 @@ public class MainActivity extends AppCompatActivity {
             } catch (Exception ignored) {}
         }
 
+        // دریافت یادداشت‌های عاشقانه آپدیت شده از گیت‌هاب
+        @JavascriptInterface
+        public String getCloudNotesJson() {
+            SharedPreferences prefs = getSharedPreferences("lovebox_cloud", Context.MODE_PRIVATE);
+            return prefs.getString("notes_json", "{}");
+        }
+
+        // شروع همگام‌سازی خودکار در پس‌زمینه با گیت‌هاب
+        @JavascriptInterface
+        public void syncWithCloud() {
+            if (isSyncing) return;
+            isSyncing = true;
+            new Thread(() -> {
+                boolean hasChanges = false;
+                try {
+                    // ۱. بررسی فایل notes.json در گیت‌هاب برای آپدیت متن‌های پشت کاور یا عنوان آهنگ‌ها
+                    String notesUrl = "https://cdn.jsdelivr.net/gh/" + GITHUB_OWNER + "/" + GITHUB_REPO + "@" + GITHUB_BRANCH + "/notes.json?t=" + System.currentTimeMillis();
+                    String notesContent = fetchUrlText(notesUrl);
+                    if (notesContent == null) {
+                        notesContent = fetchUrlText("https://raw.githubusercontent.com/" + GITHUB_OWNER + "/" + GITHUB_REPO + "/" + GITHUB_BRANCH + "/notes.json");
+                    }
+                    if (notesContent != null && notesContent.trim().startsWith("{")) {
+                        SharedPreferences prefs = getSharedPreferences("lovebox_cloud", Context.MODE_PRIVATE);
+                        String oldNotes = prefs.getString("notes_json", "{}");
+                        if (!notesContent.equals(oldNotes)) {
+                            prefs.edit().putString("notes_json", notesContent).apply();
+                            hasChanges = true;
+                        }
+                    }
+
+                    // ۲. بررسی پوشه audios در گیت‌هاب برای دانلود خودکار آهنگ‌های جدید
+                    String[] builtInAudios = getAssets().list("media/audios");
+                    Set<String> builtInAudioSet = new HashSet<>();
+                    if (builtInAudios != null) Collections.addAll(builtInAudioSet, builtInAudios);
+
+                    File cloudAudioDir = new File(getFilesDir(), "cloud_audios");
+                    if (!cloudAudioDir.exists()) cloudAudioDir.mkdirs();
+
+                    String apiAudiosUrl = "https://api.github.com/repos/" + GITHUB_OWNER + "/" + GITHUB_REPO + "/contents/app/src/main/assets/media/audios?ref=" + GITHUB_BRANCH;
+                    String apiResponse = fetchUrlText(apiAudiosUrl);
+                    if (apiResponse != null && apiResponse.trim().startsWith("[")) {
+                        JSONArray filesArray = new JSONArray(apiResponse);
+                        for (int i = 0; i < filesArray.length(); i++) {
+                            JSONObject fileObj = filesArray.getJSONObject(i);
+                            String name = fileObj.optString("name", "");
+                            if (name.toLowerCase().endsWith(".mp3") && !builtInAudioSet.contains(name)) {
+                                File targetFile = new File(cloudAudioDir, name);
+                                long expectedSize = fileObj.optLong("size", -1);
+                                if (!targetFile.exists() || (expectedSize > 0 && targetFile.length() != expectedSize)) {
+                                    String cdnUrl = "https://cdn.jsdelivr.net/gh/" + GITHUB_OWNER + "/" + GITHUB_REPO + "@" + GITHUB_BRANCH + "/app/src/main/assets/media/audios/" + Uri.encode(name);
+                                    boolean downloaded = downloadFile(cdnUrl, targetFile);
+                                    if (!downloaded) {
+                                        String rawUrl = fileObj.optString("download_url", "");
+                                        if (!rawUrl.isEmpty()) downloaded = downloadFile(rawUrl, targetFile);
+                                    }
+                                    if (downloaded) hasChanges = true;
+                                }
+                            }
+                        }
+                    }
+
+                    // ۳. بررسی پوشه images در گیت‌هاب برای دانلود کاورهای جدید (مثل cover11.jpg)
+                    String[] builtInImages = getAssets().list("media/images");
+                    Set<String> builtInImageSet = new HashSet<>();
+                    if (builtInImages != null) Collections.addAll(builtInImageSet, builtInImages);
+
+                    File cloudImageDir = new File(getFilesDir(), "cloud_images");
+                    if (!cloudImageDir.exists()) cloudImageDir.mkdirs();
+
+                    String apiImagesUrl = "https://api.github.com/repos/" + GITHUB_OWNER + "/" + GITHUB_REPO + "/contents/app/src/main/assets/media/images?ref=" + GITHUB_BRANCH;
+                    String imgApiResponse = fetchUrlText(apiImagesUrl);
+                    if (imgApiResponse != null && imgApiResponse.trim().startsWith("[")) {
+                        JSONArray imgArray = new JSONArray(imgApiResponse);
+                        for (int i = 0; i < imgArray.length(); i++) {
+                            JSONObject imgObj = imgArray.getJSONObject(i);
+                            String name = imgObj.optString("name", "");
+                            if ((name.toLowerCase().endsWith(".jpg") || name.toLowerCase().endsWith(".png")) && !builtInImageSet.contains(name)) {
+                                File targetImg = new File(cloudImageDir, name);
+                                long expectedSize = imgObj.optLong("size", -1);
+                                if (!targetImg.exists() || (expectedSize > 0 && targetImg.length() != expectedSize)) {
+                                    String cdnUrl = "https://cdn.jsdelivr.net/gh/" + GITHUB_OWNER + "/" + GITHUB_REPO + "@" + GITHUB_BRANCH + "/app/src/main/assets/media/images/" + Uri.encode(name);
+                                    boolean downloaded = downloadFile(cdnUrl, targetImg);
+                                    if (!downloaded) {
+                                        String rawUrl = imgObj.optString("download_url", "");
+                                        if (!rawUrl.isEmpty()) downloaded = downloadFile(rawUrl, targetImg);
+                                    }
+                                    if (downloaded) hasChanges = true;
+                                }
+                            }
+                        }
+                    }
+                } catch (Exception ignored) {
+                } finally {
+                    isSyncing = false;
+                }
+
+                if (hasChanges) {
+                    runOnUiThread(() -> {
+                        if (webView != null) {
+                            webView.evaluateJavascript("if(typeof onCloudSyncUpdated === 'function') onCloudSyncUpdated();", null);
+                        }
+                    });
+                }
+            }).start();
+        }
+
         @JavascriptInterface
         public String getTracksJson() {
             JSONArray jsonArray = new JSONArray();
             try {
-                String[] audioFiles = getAssets().list("media/audios");
-                String[] imageFiles = getAssets().list("media/images");
-                Set<String> imageSet = new HashSet<>();
-                if (imageFiles != null) {
-                    Collections.addAll(imageSet, imageFiles);
+                String[] assetAudios = getAssets().list("media/audios");
+                String[] assetImages = getAssets().list("media/images");
+                Set<String> assetImageSet = new HashSet<>();
+                if (assetImages != null) Collections.addAll(assetImageSet, assetImages);
+
+                File cloudAudioDir = new File(getFilesDir(), "cloud_audios");
+                File cloudImageDir = new File(getFilesDir(), "cloud_images");
+                Set<String> cloudImageSet = new HashSet<>();
+                if (cloudImageDir.exists() && cloudImageDir.list() != null) {
+                    Collections.addAll(cloudImageSet, cloudImageDir.list());
                 }
 
-                if (audioFiles != null) {
-                    List<String> mp3List = new ArrayList<>();
-                    for (String f : audioFiles) {
+                // نگهداری لیست تمام آهنگ‌ها (هم داخلی و هم دانلودشده از گیت‌هاب)
+                Map<String, Boolean> isCloudMap = new HashMap<>();
+                List<String> allMp3s = new ArrayList<>();
+
+                if (assetAudios != null) {
+                    for (String f : assetAudios) {
                         if (f.toLowerCase().endsWith(".mp3")) {
-                            mp3List.add(f);
+                            allMp3s.add(f);
+                            isCloudMap.put(f, false);
                         }
                     }
+                }
 
-                    Collections.sort(mp3List, (a, b) -> {
-                        int numA = extractNumber(a);
-                        int numB = extractNumber(b);
-                        if (numA != -1 && numB != -1 && numA != numB) {
-                            return Integer.compare(numA, numB);
+                if (cloudAudioDir.exists() && cloudAudioDir.listFiles() != null) {
+                    for (File cf : cloudAudioDir.listFiles()) {
+                        String name = cf.getName();
+                        if (name.toLowerCase().endsWith(".mp3") && cf.length() > 1024 && !isCloudMap.containsKey(name)) {
+                            allMp3s.add(name);
+                            isCloudMap.put(name, true);
                         }
-                        return a.compareToIgnoreCase(b);
-                    });
+                    }
+                }
 
-                    int idCounter = 1;
-                    for (String fileName : mp3List) {
-                        String assetPath = "media/audios/" + fileName;
-                        String title = "";
-                        String artist = "";
+                Collections.sort(allMp3s, (a, b) -> {
+                    int numA = extractNumber(a);
+                    int numB = extractNumber(b);
+                    if (numA != -1 && numB != -1 && numA != numB) {
+                        return Integer.compare(numA, numB);
+                    }
+                    return a.compareToIgnoreCase(b);
+                });
 
-                        MediaMetadataRetriever retriever = new MediaMetadataRetriever();
-                        try (AssetFileDescriptor afd = getAssets().openFd(assetPath)) {
-                            retriever.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
-                            title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
-                            artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST);
-                        } catch (Exception ignored) {
-                        } finally {
-                            try { retriever.release(); } catch (Exception ignored) {}
-                        }
+                int idCounter = 1;
+                for (String fileName : allMp3s) {
+                    boolean isCloud = Boolean.TRUE.equals(isCloudMap.get(fileName));
+                    String title = "";
+                    String artist = "";
+                    String mp3Url;
 
-                        if (title == null || title.trim().isEmpty()) {
-                            title = fileName.replaceFirst("[.][^.]+$", "");
-                        }
-                        if (artist == null || artist.trim().isEmpty()) {
-                            artist = "My Love's Playlist";
-                        }
-
-                        int songNum = extractNumber(fileName);
-                        String coverUrl;
-                        if (songNum != -1 && imageSet.contains("cover" + songNum + ".jpg")) {
-                            coverUrl = "file:///android_asset/media/images/cover" + songNum + ".jpg";
-                        } else if (songNum != -1 && imageSet.contains("cover" + songNum + ".png")) {
-                            coverUrl = "file:///android_asset/media/images/cover" + songNum + ".png";
+                    MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+                    try {
+                        if (isCloud) {
+                            File cf = new File(cloudAudioDir, fileName);
+                            retriever.setDataSource(cf.getAbsolutePath());
+                            mp3Url = Uri.fromFile(cf).toString();
                         } else {
-                            coverUrl = "https://lovebox.cover/" + Uri.encode(fileName);
+                            String assetPath = "media/audios/" + fileName;
+                            try (AssetFileDescriptor afd = getAssets().openFd(assetPath)) {
+                                retriever.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
+                            }
+                            mp3Url = "file:///android_asset/" + assetPath;
                         }
-
-                        JSONObject obj = new JSONObject();
-                        obj.put("id", idCounter++);
-                        obj.put("fileName", fileName);
-                        obj.put("title", title.trim());
-                        obj.put("artist", artist.trim());
-                        obj.put("cover", coverUrl);
-                        obj.put("mp3", "file:///android_asset/" + assetPath);
-                        jsonArray.put(obj);
+                        title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
+                        artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST);
+                    } catch (Exception ignored) {
+                        mp3Url = isCloud
+                                ? Uri.fromFile(new File(cloudAudioDir, fileName)).toString()
+                                : "file:///android_asset/media/audios/" + fileName;
+                    } finally {
+                        try { retriever.release(); } catch (Exception ignored) {}
                     }
+
+                    if (title == null || title.trim().isEmpty()) {
+                        title = fileName.replaceFirst("[.][^.]+$", "");
+                    }
+                    if (artist == null || artist.trim().isEmpty()) {
+                        artist = "My Love's Playlist";
+                    }
+
+                    int songNum = extractNumber(fileName);
+                    String coverUrl;
+                    if (songNum != -1 && assetImageSet.contains("cover" + songNum + ".jpg")) {
+                        coverUrl = "file:///android_asset/media/images/cover" + songNum + ".jpg";
+                    } else if (songNum != -1 && assetImageSet.contains("cover" + songNum + ".png")) {
+                        coverUrl = "file:///android_asset/media/images/cover" + songNum + ".png";
+                    } else if (songNum != -1 && cloudImageSet.contains("cover" + songNum + ".jpg")) {
+                        coverUrl = Uri.fromFile(new File(cloudImageDir, "cover" + songNum + ".jpg")).toString();
+                    } else if (songNum != -1 && cloudImageSet.contains("cover" + songNum + ".png")) {
+                        coverUrl = Uri.fromFile(new File(cloudImageDir, "cover" + songNum + ".png")).toString();
+                    } else {
+                        coverUrl = "https://lovebox.cover/" + Uri.encode(fileName);
+                    }
+
+                    JSONObject obj = new JSONObject();
+                    obj.put("id", idCounter++);
+                    obj.put("fileName", fileName);
+                    obj.put("title", title.trim());
+                    obj.put("artist", artist.trim());
+                    obj.put("cover", coverUrl);
+                    obj.put("mp3", mp3Url);
+                    jsonArray.put(obj);
                 }
             } catch (Exception ignored) {}
             return jsonArray.toString();
@@ -335,21 +499,96 @@ public class MainActivity extends AppCompatActivity {
         @JavascriptInterface
         public String getLyrics(String mp3Url) {
             if (mp3Url == null) return "";
-            String assetPath = mp3Url.replace("file:///android_asset/", "");
 
-            String lrcPath = assetPath.replaceAll("\\.mp3$", ".lrc");
-            try (InputStream lrcStream = getAssets().open(lrcPath)) {
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                byte[] buffer = new byte[1024];
-                int len;
-                while ((len = lrcStream.read(buffer)) != -1) {
-                    baos.write(buffer, 0, len);
+            if (mp3Url.startsWith("file:///android_asset/")) {
+                String assetPath = mp3Url.replace("file:///android_asset/", "");
+                String lrcPath = assetPath.replaceAll("\\.mp3$", ".lrc");
+                try (InputStream lrcStream = getAssets().open(lrcPath)) {
+                    return readStreamText(lrcStream);
+                } catch (IOException ignored) {}
+
+                try (InputStream is = getAssets().open(assetPath)) {
+                    return extractId3LyricsFromStream(is);
+                } catch (IOException ignored) {}
+            } else if (mp3Url.startsWith("file://")) {
+                String filePath = Uri.parse(mp3Url).getPath();
+                if (filePath != null) {
+                    File mp3File = new File(filePath);
+                    if (mp3File.exists()) {
+                        try (InputStream is = new FileInputStream(mp3File)) {
+                            return extractId3LyricsFromStream(is);
+                        } catch (IOException ignored) {}
+                    }
                 }
-                return baos.toString("UTF-8");
-            } catch (IOException ignored) {}
-
-            return extractId3Lyrics(assetPath);
+            }
+            return "";
         }
+    }
+
+    private String readStreamText(InputStream is) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        byte[] buffer = new byte[1024];
+        int len;
+        while ((len = is.read(buffer)) != -1) {
+            baos.write(buffer, 0, len);
+        }
+        return baos.toString("UTF-8");
+    }
+
+    private String fetchUrlText(String urlStr) {
+        HttpURLConnection conn = null;
+        try {
+            URL url = new URL(urlStr);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setConnectTimeout(8000);
+            conn.setReadTimeout(8000);
+            conn.setRequestProperty("User-Agent", "MusicLoveBox-App");
+            if (conn.getResponseCode() == 200) {
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        sb.append(line).append("\n");
+                    }
+                    return sb.toString();
+                }
+            }
+        } catch (Exception ignored) {
+        } finally {
+            if (conn != null) conn.disconnect();
+        }
+        return null;
+    }
+
+    private boolean downloadFile(String urlStr, File destFile) {
+        HttpURLConnection conn = null;
+        File tempFile = new File(destFile.getParentFile(), destFile.getName() + ".tmp");
+        try {
+            URL url = new URL(urlStr);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setConnectTimeout(12000);
+            conn.setReadTimeout(25000);
+            conn.setRequestProperty("User-Agent", "MusicLoveBox-App");
+            if (conn.getResponseCode() == 200) {
+                try (InputStream is = conn.getInputStream();
+                     FileOutputStream fos = new FileOutputStream(tempFile)) {
+                    byte[] buffer = new byte[8192];
+                    int len;
+                    while ((len = is.read(buffer)) != -1) {
+                        fos.write(buffer, 0, len);
+                    }
+                }
+                if (tempFile.length() > 100) {
+                    if (destFile.exists()) destFile.delete();
+                    return tempFile.renameTo(destFile);
+                }
+            }
+        } catch (Exception ignored) {
+        } finally {
+            if (tempFile.exists()) tempFile.delete();
+            if (conn != null) conn.disconnect();
+        }
+        return false;
     }
 
     private int extractNumber(String name) {
@@ -362,8 +601,8 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private String extractId3Lyrics(String assetPath) {
-        try (InputStream is = getAssets().open(assetPath)) {
+    private String extractId3LyricsFromStream(InputStream is) {
+        try {
             byte[] header = new byte[10];
             if (is.read(header) != 10) return "";
             if (header[0] != 'I' || header[1] != 'D' || header[2] != '3') return "";
