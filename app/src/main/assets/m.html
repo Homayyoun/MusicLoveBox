@@ -37,6 +37,7 @@
             z-index: 0;
         }
 
+        /* ====== صفحه اصلی با فوتر ثابت و محو شدن لیست آهنگ‌ها ====== */
         .main-page {
             position: absolute;
             top: 0;
@@ -92,6 +93,7 @@
             margin: 0 auto;
         }
 
+        /* ====== قلب تپنده و شمارنده زیر هدر ====== */
         .heartbeat-counter-box {
             display: inline-flex;
             align-items: center;
@@ -153,6 +155,7 @@
             text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
         }
 
+        /* ====== باکس شیشه‌ای زمان (هم‌شکل با دیالوگ خروج + تصویر quote.png) ====== */
         .love-time-overlay {
             position: fixed;
             top: 0;
@@ -235,6 +238,7 @@
             margin: 16px auto 0 auto;
         }
 
+        /* ====== لیست آهنگ‌ها ====== */
         .track-list {
             display: flex;
             flex-direction: column;
@@ -290,7 +294,6 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        /* ابعاد بوم ماه کمی بازتر شد تا هاله نوری اطراف آن بدون برش بدرخشد */
         .moon-canvas {
             width: 62px;
             height: 62px;
@@ -300,7 +303,7 @@
             transform: translateZ(0);
         }
 
-        /* ====== پس‌زمینه کاملاً شفاف در صفحه پلیر برای دیده شدن ستاره‌ها ====== */
+        /* ====== صفحه پلیر (شفاف برای نمایش آسمان پرستاره در پس‌زمینه) ====== */
         .player-page {
             position: fixed;
             top: 0;
@@ -362,6 +365,7 @@
             width: 100%;
         }
 
+        /* ====== کارت سه‌بعدی چرخان کاور ====== */
         .cover-scene {
             width: 215px;
             height: 215px;
@@ -449,6 +453,7 @@
             text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
         }
 
+        /* ====== باکس لیریک با حرکت فوق‌روان ۶۰ فریم ====== */
         .player-lyrics {
             background: transparent;
             border: none;
@@ -476,6 +481,7 @@
             transform: translate3d(0, 0, 0);
         }
 
+        /* ====== بخش ثابت دکمه‌ها در پایین صفحه پلیر ====== */
         .player-controls-section {
             width: 100%;
             flex-shrink: 0;
@@ -538,6 +544,7 @@
             display: block;
         }
 
+        /* ====== انیمیشن شروع (E . . .) با رندر سخت‌افزاری ====== */
         .splash-screen {
             position: fixed;
             top: 0;
@@ -627,7 +634,6 @@
 
     <canvas id="stars-canvas"></canvas>
 
-    <!-- باکس شیشه‌ای تپش قلب با عکس quote.png در پایین -->
     <div id="love-time-overlay" class="love-time-overlay">
         <div class="love-time-card">
             <svg class="modal-heart-icon" viewBox="0 0 24 24">
@@ -959,6 +965,18 @@
         }
 
         function loadAllTracks() {
+            if (window.AndroidBridge && typeof window.AndroidBridge.getCloudNotesJson === 'function') {
+                try {
+                    const cloudData = JSON.parse(window.AndroidBridge.getCloudNotesJson() || '{}');
+                    if (cloudData.notes) {
+                        Object.assign(loveNotes, cloudData.notes);
+                    }
+                    if (cloudData.tracks) {
+                        Object.assign(presetTracks, cloudData.tracks);
+                    }
+                } catch (e) {}
+            }
+
             if (window.AndroidBridge && typeof window.AndroidBridge.getTracksJson === 'function') {
                 try {
                     const rawList = JSON.parse(window.AndroidBridge.getTracksJson());
@@ -967,9 +985,9 @@
                         return {
                             id: item.id,
                             fileName: item.fileName,
-                            title: preset ? preset.title : item.title,
-                            artist: preset ? preset.artist : item.artist,
-                            cover: preset ? preset.cover : item.cover,
+                            title: (preset && preset.title) ? preset.title : item.title,
+                            artist: (preset && preset.artist) ? preset.artist : item.artist,
+                            cover: (preset && preset.cover) ? preset.cover : item.cover,
                             mp3: item.mp3
                         };
                     });
@@ -989,6 +1007,18 @@
             }
         }
 
+        window.onCloudSyncUpdated = function() {
+            loadAllTracks();
+            renderTracks();
+            if (currentTrackId) {
+                highlightActiveTrack(currentTrackId);
+                const tr = tracks.find(t => t.id === currentTrackId);
+                if (tr && coverLoveNote) {
+                    coverLoveNote.innerText = loveNotes[tr.fileName] || loveNotes["default"];
+                }
+            }
+        };
+
         const craters = [
             {x:-10,y:-7,r:3.2,depth:0.8},{x:7,y:-12,r:2.3,depth:0.6},{x:13,y:2,r:3.6,depth:0.9},
             {x:-4,y:10,r:2.7,depth:0.7},{x:-15,y:4,r:1.8,depth:0.5},{x:4,y:15,r:2.2,depth:0.6},
@@ -996,7 +1026,6 @@
             {x:10,y:9,r:2.0,depth:0.6}
         ];
 
-        // رسم ماه با هاله نوری چندلایه، ملایم و چشم‌نواز
         function drawMoon(canvas, progress, force = false) {
             const tid = canvas.getAttribute('data-id');
             if (!force && lastMoonProgress[tid] !== undefined && Math.abs(lastMoonProgress[tid] - progress) < 0.008) {
@@ -1008,7 +1037,6 @@
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, size, size);
 
-            // هاله نوری سه‌مرحله‌ای (پخش نرم تا لبه بوم بدون تیزی)
             const outerGlow = ctx.createRadialGradient(center, center, radius - 2, center, center, radius + 17);
             outerGlow.addColorStop(0, 'rgba(255, 252, 238, 0.62)');
             outerGlow.addColorStop(0.35, 'rgba(255, 250, 232, 0.30)');
@@ -1358,6 +1386,10 @@
                         initHeartbeatCounter();
                         initStarsCanvas();
                         startSmoothLyricsLoop();
+
+                        if (window.AndroidBridge && typeof window.AndroidBridge.syncWithCloud === 'function') {
+                            window.AndroidBridge.syncWithCloud();
+                        }
 
                         requestAnimationFrame(() => {
                             splashScreenElem.classList.add('fade-out');
