@@ -17,7 +17,7 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            font-family: 'Segoe UI', 'Poppins', 'Tahoma', system-ui, sans-serif;
+            font-family: 'Segoe UI', 'Poppins', system-ui, sans-serif;
             user-select: none;
             -webkit-user-select: none;
             -webkit-touch-callout: none;
@@ -361,8 +361,8 @@
         }
 
         .cover-scene {
-            width: 210px;
-            height: 210px;
+            width: 215px;
+            height: 215px;
             perspective: 1200px;
             -webkit-perspective: 1200px;
             cursor: pointer;
@@ -425,8 +425,9 @@
         }
         .cover-face-back {
             transform: rotateY(180deg);
-            background: rgba(0, 0, 0, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.25);
+            background: radial-gradient(circle at 50% 18%, rgba(28, 26, 36, 0.86) 0%, rgba(6, 6, 10, 0.9) 65%, rgba(0, 0, 0, 0.94) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.26);
+            box-shadow: 0 14px 32px rgba(0, 0, 0, 0.85), inset 0 0 24px rgba(255, 248, 235, 0.06);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             padding: 22px 18px;
@@ -761,11 +762,27 @@
 
         document.addEventListener('contextmenu', e => e.preventDefault());
 
-        function notifyAndroidPlayerState(isOpen, title, artist, cover, playing) {
-            if (window.AndroidBridge && typeof window.AndroidBridge.updateMediaNotification === 'function') {
-                window.AndroidBridge.updateMediaNotification(title || "", artist || "", cover || "", playing);
-            } else if (window.AndroidBridge && typeof window.AndroidBridge.setPlayerOpen === 'function') {
+        function notifyAndroidPlayerState(isOpen) {
+            if (window.AndroidBridge && typeof window.AndroidBridge.setPlayerOpen === 'function') {
                 window.AndroidBridge.setPlayerOpen(isOpen);
+            }
+        }
+
+        function syncSystemNotification() {
+            if (!currentTrackId || !window.AndroidBridge || typeof window.AndroidBridge.updateMediaNotification !== 'function') return;
+            const tr = tracks.find(t => t.id === currentTrackId);
+            if (!tr) return;
+            const cur = isNaN(audioPlayer.currentTime) ? 0 : audioPlayer.currentTime;
+            const dur = isNaN(audioPlayer.duration) ? 0 : audioPlayer.duration;
+            window.AndroidBridge.updateMediaNotification(tr.title, tr.artist, tr.cover, tr.mp3, isPlaying, cur, dur);
+        }
+
+        function seekFromNotification(sec) {
+            if (audioPlayer.duration && !isNaN(sec)) {
+                userScrolling = false;
+                audioPlayer.currentTime = sec;
+                updateProgress();
+                syncSystemNotification();
             }
         }
 
@@ -1165,6 +1182,7 @@
                 userScrolling = false;
                 audioPlayer.currentTime = (e.target.value / 100) * audioPlayer.duration;
                 if (currentTrackId) updateMoonForTrack(currentTrackId, audioPlayer.currentTime / audioPlayer.duration, true);
+                syncSystemNotification();
             }
         }
 
@@ -1197,16 +1215,11 @@
             audioPlayer.src = tr.mp3;
             audioPlayer.load();
             audioPlayer.play().catch(() => {});
-            notifyAndroidPlayerState(true, tr.title, tr.artist, tr.cover, true);
         }
 
         function togglePlayPause() {
             if (!audioPlayer.src) return;
-            if (isPlaying) {
-                audioPlayer.pause();
-            } else {
-                audioPlayer.play().catch(() => {});
-            }
+            isPlaying ? audioPlayer.pause() : audioPlayer.play().catch(() => {});
         }
 
         function playPrev() {
@@ -1244,7 +1257,7 @@
             updateProgress();
             mainPage.classList.add('page-behind');
             playerPage.classList.add('open');
-            notifyAndroidPlayerState(true, tr.title, tr.artist, tr.cover, isPlaying);
+            notifyAndroidPlayerState(true);
         }
 
         function closePlayerPage() {
@@ -1287,19 +1300,13 @@
         audioPlayer.addEventListener('play', () => {
             isPlaying = true;
             updatePlayPauseButton();
-            const tr = tracks.find(t => t.id === currentTrackId);
-            if (tr) {
-                notifyAndroidPlayerState(true, tr.title, tr.artist, tr.cover, true);
-            }
+            syncSystemNotification();
         });
 
         audioPlayer.addEventListener('pause', () => {
             isPlaying = false;
             updatePlayPauseButton();
-            const tr = tracks.find(t => t.id === currentTrackId);
-            if (tr) {
-                notifyAndroidPlayerState(true, tr.title, tr.artist, tr.cover, false);
-            }
+            syncSystemNotification();
         });
 
         audioPlayer.addEventListener('ended', () => {
@@ -1318,7 +1325,10 @@
         });
 
         audioPlayer.addEventListener('timeupdate', updateProgress);
-        audioPlayer.addEventListener('loadedmetadata', updateProgress);
+        audioPlayer.addEventListener('loadedmetadata', () => {
+            updateProgress();
+            syncSystemNotification();
+        });
         progressBar.addEventListener('input', seekTo);
         playPauseBtn.addEventListener('click', togglePlayPause);
         prevBtn.addEventListener('click', playPrev);
