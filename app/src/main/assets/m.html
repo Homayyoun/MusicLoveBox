@@ -246,7 +246,7 @@
             display: flex;
             align-items: center;
             gap: 15px;
-            padding: 8px 15px 8px 10px;
+            padding: 8px 12px 8px 10px;
             border: 1px solid rgba(255, 255, 255, 0.15);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
             direction: ltr;
@@ -290,15 +290,17 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+        /* ابعاد بوم ماه کمی بازتر شد تا هاله نوری اطراف آن بدون برش بدرخشد */
         .moon-canvas {
-            width: 55px;
-            height: 55px;
+            width: 62px;
+            height: 62px;
+            margin: -3px;
             cursor: pointer;
-            border-radius: 50%;
             flex-shrink: 0;
             transform: translateZ(0);
         }
 
+        /* ====== پس‌زمینه کاملاً شفاف در صفحه پلیر برای دیده شدن ستاره‌ها ====== */
         .player-page {
             position: fixed;
             top: 0;
@@ -306,7 +308,7 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background: rgba(0, 0, 0, 0.86);
+            background: transparent;
             padding: env(safe-area-inset-top, 18px) 20px calc(env(safe-area-inset-bottom, 16px) + 18px) 20px;
             z-index: 10;
             opacity: 0;
@@ -463,12 +465,13 @@
         }
         .lyrics-inner {
             padding: 60px 14px;
-            color: rgba(255, 255, 255, 0.92);
+            color: rgba(255, 255, 255, 0.94);
             font-size: 0.95rem;
             line-height: 1.95;
             text-align: center;
             white-space: pre-wrap;
             font-family: monospace;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
             will-change: transform;
             transform: translate3d(0, 0, 0);
         }
@@ -624,6 +627,7 @@
 
     <canvas id="stars-canvas"></canvas>
 
+    <!-- باکس شیشه‌ای تپش قلب با عکس quote.png در پایین -->
     <div id="love-time-overlay" class="love-time-overlay">
         <div class="love-time-card">
             <svg class="modal-heart-icon" viewBox="0 0 24 24">
@@ -647,7 +651,7 @@
                     <span class="time-unit-label">Secs</span>
                 </div>
             </div>
-            <img src="file:///android_asset/media/images/footer.png" alt="Love Quote" class="love-time-quote-img">
+            <img src="file:///android_asset/media/images/quote.png" alt="Love Quote" class="love-time-quote-img">
         </div>
     </div>
 
@@ -986,12 +990,13 @@
         }
 
         const craters = [
-            {x:-12,y:-8,r:3.5,depth:0.8},{x:8,y:-14,r:2.5,depth:0.6},{x:15,y:2,r:4,depth:0.9},
-            {x:-5,y:12,r:3,depth:0.7},{x:-18,y:5,r:2,depth:0.5},{x:5,y:18,r:2.5,depth:0.6},
-            {x:20,y:-5,r:2,depth:0.5},{x:-20,y:-12,r:1.8,depth:0.4},{x:0,y:0,r:4.5,depth:1.0},
-            {x:12,y:10,r:2.2,depth:0.6}
+            {x:-10,y:-7,r:3.2,depth:0.8},{x:7,y:-12,r:2.3,depth:0.6},{x:13,y:2,r:3.6,depth:0.9},
+            {x:-4,y:10,r:2.7,depth:0.7},{x:-15,y:4,r:1.8,depth:0.5},{x:4,y:15,r:2.2,depth:0.6},
+            {x:17,y:-4,r:1.8,depth:0.5},{x:-17,y:-10,r:1.6,depth:0.4},{x:0,y:0,r:4.0,depth:1.0},
+            {x:10,y:9,r:2.0,depth:0.6}
         ];
 
+        // رسم ماه با هاله نوری چندلایه، ملایم و چشم‌نواز
         function drawMoon(canvas, progress, force = false) {
             const tid = canvas.getAttribute('data-id');
             if (!force && lastMoonProgress[tid] !== undefined && Math.abs(lastMoonProgress[tid] - progress) < 0.008) {
@@ -999,23 +1004,26 @@
             }
             lastMoonProgress[tid] = progress;
 
-            const size = 88, center = 44, radius = 34;
+            const size = 96, center = 48, radius = 30;
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, size, size);
 
-            const glow = ctx.createRadialGradient(center, center, radius - 2, center, center, radius + 9);
-            glow.addColorStop(0, 'rgba(255, 253, 240, 0.45)');
-            glow.addColorStop(1, 'rgba(255, 253, 240, 0)');
+            // هاله نوری سه‌مرحله‌ای (پخش نرم تا لبه بوم بدون تیزی)
+            const outerGlow = ctx.createRadialGradient(center, center, radius - 2, center, center, radius + 17);
+            outerGlow.addColorStop(0, 'rgba(255, 252, 238, 0.62)');
+            outerGlow.addColorStop(0.35, 'rgba(255, 250, 232, 0.30)');
+            outerGlow.addColorStop(0.7, 'rgba(255, 248, 225, 0.10)');
+            outerGlow.addColorStop(1, 'rgba(255, 248, 225, 0)');
             ctx.beginPath();
-            ctx.arc(center, center, radius + 9, 0, Math.PI * 2);
-            ctx.fillStyle = glow;
+            ctx.arc(center, center, radius + 17, 0, Math.PI * 2);
+            ctx.fillStyle = outerGlow;
             ctx.fill();
 
-            const grad = ctx.createRadialGradient(center - 6, center - 6, 5, center, center, radius);
-            grad.addColorStop(0, '#FFFDF5');
-            grad.addColorStop(0.4, '#F5EFE6');
-            grad.addColorStop(0.7, '#E8DFD0');
-            grad.addColorStop(1, '#D0C8B8');
+            const grad = ctx.createRadialGradient(center - 5, center - 5, 4, center, center, radius);
+            grad.addColorStop(0, '#FFFDF7');
+            grad.addColorStop(0.4, '#F6F0E6');
+            grad.addColorStop(0.75, '#E8DFD0');
+            grad.addColorStop(1, '#D2C9B8');
             ctx.beginPath();
             ctx.arc(center, center, radius, 0, Math.PI * 2);
             ctx.fillStyle = grad;
@@ -1026,8 +1034,8 @@
                 ctx.beginPath();
                 ctx.arc(center, center, radius, 0, Math.PI * 2);
                 ctx.clip();
-                let offX = 6 + 68 * progress;
-                let shGrad = ctx.createRadialGradient(center + offX - 12, center, 5, center + offX, center, radius + 4);
+                let offX = 5 + 60 * progress;
+                let shGrad = ctx.createRadialGradient(center + offX - 10, center, 4, center + offX, center, radius + 4);
                 shGrad.addColorStop(0, 'rgba(55, 60, 70, 0.96)');
                 shGrad.addColorStop(0.65, 'rgba(75, 80, 90, 0.85)');
                 shGrad.addColorStop(1, 'rgba(100, 105, 115, 0.25)');
@@ -1277,8 +1285,8 @@
 
                 const cv = document.createElement('canvas');
                 cv.className = 'moon-canvas';
-                cv.width = 88;
-                cv.height = 88;
+                cv.width = 96;
+                cv.height = 96;
                 cv.setAttribute('data-id', tr.id);
                 moonCanvases[tr.id] = cv;
                 drawMoon(cv, 0, true);
