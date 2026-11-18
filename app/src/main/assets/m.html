@@ -46,22 +46,22 @@
             height: 100%;
             overflow: hidden;
             z-index: 2;
-            transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.28s ease;
-            will-change: transform, opacity;
+            transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease;
         }
         .main-page.page-behind {
-            transform: scale(0.95);
+            transform: scale(0.96);
             opacity: 0;
             pointer-events: none;
+            visibility: hidden;
+            transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease, visibility 0s 0.25s;
         }
+        /* حذف mask-image سنگین از کانتینر اسکرول برای اسکرول فوق‌روان ۶۰ فریم */
         .main-scroll-area {
             width: 100%;
             height: 100%;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
-            padding: env(safe-area-inset-top, 20px) 20px calc(env(safe-area-inset-bottom, 16px) + 115px) 20px;
-            mask-image: linear-gradient(to bottom, black 0%, black calc(100% - 125px), transparent calc(100% - 25px));
-            -webkit-mask-image: linear-gradient(to bottom, black 0%, black calc(100% - 125px), transparent calc(100% - 25px));
+            padding: env(safe-area-inset-top, 20px) 20px calc(env(safe-area-inset-bottom, 16px) + 120px) 20px;
         }
         .content-wrapper {
             max-width: 580px;
@@ -74,13 +74,14 @@
             margin-bottom: 14px;
             position: relative;
         }
+        /* گرادیان مشکی عمیق روی فوتر برای محو شدن نرم آهنگ‌ها هنگام اسکرول به پایین */
         .main-footer {
             position: absolute;
             bottom: 0;
             left: 0;
             width: 100%;
-            padding: 20px 20px calc(env(safe-area-inset-bottom, 12px) + 8px) 20px;
-            background: linear-gradient(to top, rgba(0, 0, 0, 0.92) 30%, rgba(0, 0, 0, 0.45) 70%, transparent 100%);
+            padding: 36px 20px calc(env(safe-area-inset-bottom, 12px) + 8px) 20px;
+            background: linear-gradient(to top, #000000 32%, rgba(0, 0, 0, 0.85) 62%, rgba(0, 0, 0, 0.35) 84%, transparent 100%);
             text-align: center;
             z-index: 5;
             pointer-events: none;
@@ -93,7 +94,7 @@
             margin: 0 auto;
         }
 
-        /* ====== قلب تپنده و شمارنده ====== */
+        /* ====== قلب تپنده و شمارنده (بهینه‌سازی شده برای GPU بدون فیلتر سنگین) ====== */
         .heartbeat-counter-box {
             display: inline-flex;
             align-items: center;
@@ -114,36 +115,15 @@
             height: 15px;
             fill: #ffffff;
             overflow: visible;
+            filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.75));
             animation: realisticHeartBeat 0.8s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
-            will-change: transform, filter;
+            will-change: transform, opacity;
         }
         @keyframes realisticHeartBeat {
-            0% {
-                transform: scale(1);
-                filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.5))
-                        drop-shadow(0 0 8px rgba(255, 255, 255, 0.25));
-            }
-            18% {
-                transform: scale(1.24);
-                filter: drop-shadow(0 0 6px rgba(255, 255, 255, 1))
-                        drop-shadow(0 0 14px rgba(255, 255, 255, 0.85))
-                        drop-shadow(0 0 22px rgba(255, 255, 255, 0.45));
-            }
-            34% {
-                transform: scale(1.05);
-                filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.6))
-                        drop-shadow(0 0 9px rgba(255, 255, 255, 0.3));
-            }
-            50% {
-                transform: scale(1.15);
-                filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.9))
-                        drop-shadow(0 0 12px rgba(255, 255, 255, 0.6));
-            }
-            100% {
-                transform: scale(1);
-                filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.5))
-                        drop-shadow(0 0 8px rgba(255, 255, 255, 0.25));
-            }
+            0%, 100% { transform: scale(1); opacity: 0.88; }
+            18% { transform: scale(1.25); opacity: 1; }
+            34% { transform: scale(1.05); opacity: 0.9; }
+            50% { transform: scale(1.16); opacity: 0.98; }
         }
         .heartbeat-number {
             color: rgba(255, 255, 255, 0.92);
@@ -162,32 +142,34 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.6);
+            background: rgba(0, 0, 0, 0.68);
             z-index: 100;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
             opacity: 0;
+            visibility: hidden;
             pointer-events: none;
-            transition: opacity 0.25s ease;
+            transition: opacity 0.22s ease, visibility 0s 0.22s;
         }
         .love-time-overlay.visible {
             opacity: 1;
+            visibility: visible;
             pointer-events: auto;
+            transition: opacity 0.22s ease, visibility 0s 0s;
         }
         .love-time-card {
             width: 100%;
             max-width: 310px;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(8, 8, 12, 0.92);
             border: 1px solid rgba(255, 255, 255, 0.25);
             border-radius: 24px;
             padding: 24px 20px 18px 20px;
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85);
             text-align: center;
             transform: scale(0.92);
-            transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+            transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
             direction: ltr;
         }
         .love-time-overlay.visible .love-time-card {
@@ -199,6 +181,7 @@
             fill: #ffffff;
             margin: 0 auto 18px auto;
             display: block;
+            filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.7));
             animation: realisticHeartBeat 0.8s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
         }
         .time-grid {
@@ -238,27 +221,28 @@
             margin: 16px auto 0 auto;
         }
 
-        /* ====== پاکت نامه جادویی و قدیمی-مینیمال (Magical Vintage Envelope) ====== */
+        /* ====== پاکت نامه جادویی ====== */
         .magic-letter-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.78);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
+            background: rgba(0, 0, 0, 0.84);
             z-index: 250;
             display: flex;
             align-items: center;
             justify-content: center;
             opacity: 0;
+            visibility: hidden;
             pointer-events: none;
-            transition: opacity 0.55s ease;
+            transition: opacity 0.45s ease, visibility 0s 0.45s;
         }
         .magic-letter-overlay.show {
             opacity: 1;
+            visibility: visible;
             pointer-events: auto;
+            transition: opacity 0.45s ease, visibility 0s 0s;
         }
         #magic-dust-canvas {
             position: absolute;
@@ -290,7 +274,6 @@
             opacity: 0;
             pointer-events: none;
         }
-        /* بدنه پشت پاکت */
         .env-back {
             position: absolute;
             inset: 0;
@@ -299,7 +282,6 @@
             border: 1px solid rgba(255, 240, 210, 0.35);
             box-shadow: 0 18px 45px rgba(0, 0, 0, 0.9), 0 0 28px rgba(255, 242, 215, 0.12);
         }
-        /* برگه نامه داخل پاکت که موقع باز شدن بالا می‌آید */
         .env-inner-paper {
             position: absolute;
             left: 14px;
@@ -330,7 +312,6 @@
         .envelope-stage.opening .env-inner-paper {
             transform: translateY(-95px) scale(1.02);
         }
-        /* جیب جلوی پاکت (طراحی هنری با SVG) */
         .env-front-pocket {
             position: absolute;
             inset: 0;
@@ -339,7 +320,6 @@
             border-radius: 14px;
             overflow: hidden;
         }
-        /* درِ مثلثی بالای پاکت با چرخش سه‌بعدی */
         .env-top-flap {
             position: absolute;
             top: 0;
@@ -356,7 +336,6 @@
             transform: rotateX(180deg);
             z-index: 1;
         }
-        /* مهر مینیمال وسط پاکت */
         .env-wax-seal {
             position: absolute;
             top: 96px;
@@ -378,39 +357,35 @@
             width: 15px;
             height: 15px;
             fill: rgba(255, 244, 224, 0.9);
-            filter: drop-shadow(0 0 5px rgba(255, 244, 220, 0.5));
         }
         .envelope-stage.opening .env-wax-seal {
             transform: translate(-50%, -50%) scale(0.5);
             opacity: 0;
         }
-
-        /* برگه نامه بازشده برای خواندن متن */
         .opened-letter-card {
             position: absolute;
             z-index: 6;
             width: calc(100% - 44px);
             max-width: 335px;
             max-height: 74vh;
-            background: radial-gradient(circle at 50% 12%, rgba(28, 26, 36, 0.94) 0%, rgba(10, 10, 15, 0.96) 70%, rgba(4, 4, 7, 0.98) 100%);
+            background: radial-gradient(circle at 50% 12%, rgba(28, 26, 36, 0.96) 0%, rgba(10, 10, 15, 0.98) 70%, #040407 100%);
             border: 1px solid rgba(255, 240, 215, 0.32);
             border-radius: 24px;
             padding: 28px 22px 24px 22px;
-            box-shadow: 0 22px 55px rgba(0, 0, 0, 0.92), inset 0 0 24px rgba(255, 242, 215, 0.06);
+            box-shadow: 0 22px 55px rgba(0, 0, 0, 0.92);
             display: flex;
             flex-direction: column;
             align-items: center;
             opacity: 0;
             transform: translateY(35px) scale(0.92);
             pointer-events: none;
-            transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.55s ease;
+            transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.5s ease;
         }
         .opened-letter-card.reading {
             opacity: 1;
             transform: translateY(0) scale(1);
             pointer-events: auto;
         }
-        /* کادر ظریف داخلی به سبک نامه‌های کلاسیک مینیمال */
         .opened-letter-inner-frame {
             width: 100%;
             border: 1px solid rgba(255, 240, 215, 0.12);
@@ -449,7 +424,7 @@
             flex-shrink: 0;
         }
 
-        /* ====== لیست آهنگ‌ها ====== */
+        /* ====== لیست آهنگ‌ها (سبک و بهینه برای اسکرول سریع) ====== */
         .track-list {
             display: flex;
             flex-direction: column;
@@ -463,27 +438,26 @@
             gap: 15px;
             padding: 8px 12px 8px 10px;
             border: 1px solid rgba(255, 255, 255, 0.15);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
             direction: ltr;
             text-align: left;
             cursor: pointer;
-            transform: translateZ(0);
-            transition: transform 0.15s ease, border-color 0.2s ease;
+            contain: layout paint;
+            transition: transform 0.12s ease, border-color 0.18s ease;
         }
         .track-item:active {
             transform: scale(0.98);
             border-color: rgba(255, 255, 255, 0.3);
         }
         .track-item.active-track {
-            border-color: rgba(255, 245, 210, 0.45);
+            border-color: rgba(255, 245, 210, 0.48);
         }
         .cover-img {
             width: 55px;
             height: 55px;
             border-radius: 18px;
             object-fit: cover;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
             flex-shrink: 0;
+            background: #111;
         }
         .track-info {
             flex: 1;
@@ -511,7 +485,6 @@
             margin: -3px;
             cursor: pointer;
             flex-shrink: 0;
-            transform: translateZ(0);
         }
 
         /* ====== صفحه پلیر ====== */
@@ -526,15 +499,17 @@
             padding: env(safe-area-inset-top, 18px) 20px calc(env(safe-area-inset-bottom, 16px) + 18px) 20px;
             z-index: 10;
             opacity: 0;
-            transform: translate3d(0, 25px, 0);
+            visibility: hidden;
+            transform: translate3d(0, 22px, 0);
             pointer-events: none;
-            transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.28s ease;
-            will-change: transform, opacity;
+            transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease, visibility 0s 0.25s;
         }
         .player-page.open {
             opacity: 1;
+            visibility: visible;
             transform: translate3d(0, 0, 0);
             pointer-events: auto;
+            transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease, visibility 0s 0s;
         }
         .player-inner {
             max-width: 580px;
@@ -592,12 +567,11 @@
             position: relative;
             transform-style: preserve-3d;
             -webkit-transform-style: preserve-3d;
-            transition: transform 0.85s cubic-bezier(0.2, 0.85, 0.25, 1.08);
-            will-change: transform;
+            transition: transform 0.8s cubic-bezier(0.2, 0.85, 0.25, 1.05);
             border-radius: 26px;
         }
         .cover-card-3d.is-flipped {
-            transform: rotateY(180deg) scale(1.03);
+            transform: rotateY(180deg) scale(1.02);
         }
         .cover-face {
             position: absolute;
@@ -609,29 +583,11 @@
             backface-visibility: hidden;
             -webkit-backface-visibility: hidden;
             overflow: hidden;
-            box-shadow: 0 14px 32px rgba(0, 0, 0, 0.78);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.75);
         }
         .cover-face-front {
             background: #08080a;
             border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        .cover-face::after {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -60%;
-            width: 55%;
-            height: 200%;
-            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.14) 50%, rgba(255,255,255,0) 100%);
-            transform: rotate(25deg) translateX(-180%);
-            transition: transform 0.85s cubic-bezier(0.22, 1, 0.36, 1);
-            pointer-events: none;
-        }
-        .cover-card-3d.is-flipped .cover-face-front::after {
-            transform: rotate(25deg) translateX(420%);
-        }
-        .cover-card-3d:not(.is-flipped) .cover-face-back::after {
-            transform: rotate(25deg) translateX(420%);
         }
         .player-cover {
             width: 100%;
@@ -641,11 +597,8 @@
         }
         .cover-face-back {
             transform: rotateY(180deg);
-            background: radial-gradient(circle at 50% 18%, rgba(28, 26, 36, 0.86) 0%, rgba(6, 6, 10, 0.9) 65%, rgba(0, 0, 0, 0.94) 100%);
+            background: radial-gradient(circle at 50% 18%, rgba(28, 26, 36, 0.94) 0%, rgba(8, 8, 12, 0.96) 65%, #040406 100%);
             border: 1px solid rgba(255, 255, 255, 0.26);
-            box-shadow: 0 14px 32px rgba(0, 0, 0, 0.85), inset 0 0 24px rgba(255, 248, 235, 0.06);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
             padding: 22px 18px;
             display: flex;
             align-items: center;
@@ -660,13 +613,11 @@
             overflow-y: auto;
             font-weight: 400;
             direction: ltr;
-            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
         }
 
         .player-lyrics {
             background: transparent;
             border: none;
-            box-shadow: none;
             width: 100%;
             flex: 1;
             min-height: 0;
@@ -674,8 +625,8 @@
             overflow: hidden;
             position: relative;
             touch-action: none;
-            mask-image: linear-gradient(to bottom, transparent 0%, black 16%, black 84%, transparent 100%);
-            -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 16%, black 84%, transparent 100%);
+            mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
         }
         .lyrics-inner {
             padding: 60px 14px;
@@ -685,7 +636,6 @@
             text-align: center;
             white-space: pre-wrap;
             font-family: monospace;
-            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
             will-change: transform;
             transform: translate3d(0, 0, 0);
         }
@@ -845,17 +795,14 @@
     <div id="magic-letter-overlay" class="magic-letter-overlay">
         <canvas id="magic-dust-canvas"></canvas>
 
-        <!-- پاکت بسته وسط صفحه -->
         <div id="envelope-stage" class="envelope-stage">
             <div class="env-back"></div>
 
-            <!-- برگه نامه داخل پاکت -->
             <div class="env-inner-paper">
                 <div class="inner-paper-line"></div>
                 <div class="inner-paper-line short"></div>
             </div>
 
-            <!-- بدنه جلوی پاکت (خطوط هنری مینیمال و کلاسیک) -->
             <div class="env-front-pocket">
                 <svg viewBox="0 0 270 180" width="100%" height="100%" preserveAspectRatio="none">
                     <defs>
@@ -868,17 +815,13 @@
                             <stop offset="100%" stop-color="#1e1c28" />
                         </linearGradient>
                     </defs>
-                    <!-- باله‌های چپ و راست پاکت -->
                     <path d="M0,0 L135,98 L0,180 Z" fill="url(#pocketGrad)" stroke="rgba(255,240,210,0.22)" stroke-width="1"/>
                     <path d="M270,0 L135,98 L270,180 Z" fill="url(#pocketGrad)" stroke="rgba(255,240,210,0.22)" stroke-width="1"/>
-                    <!-- باله پایین پاکت -->
                     <path d="M0,180 L135,88 L270,180 Z" fill="url(#bottomFlapGrad)" stroke="rgba(255,240,210,0.32)" stroke-width="1.2"/>
-                    <!-- کادر تزئینی وینتیج-مینیمال دور پاکت -->
                     <rect x="6" y="6" width="258" height="168" rx="10" ry="10" fill="none" stroke="rgba(255,240,210,0.14)" stroke-width="0.9" stroke-dasharray="3,3"/>
                 </svg>
             </div>
 
-            <!-- درِ بازشونده بالای پاکت -->
             <div class="env-top-flap">
                 <svg viewBox="0 0 270 108" width="100%" height="100%" preserveAspectRatio="none">
                     <defs>
@@ -892,7 +835,6 @@
                 </svg>
             </div>
 
-            <!-- مهر مومی مینیمال روی در پاکت -->
             <div class="env-wax-seal">
                 <svg viewBox="0 0 24 24">
                     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
@@ -900,7 +842,6 @@
             </div>
         </div>
 
-        <!-- برگه نامه بازشده که از پاکت بیرون می‌آید -->
         <div id="opened-letter-card" class="opened-letter-card">
             <div class="opened-letter-inner-frame">
                 <div class="letter-ornament-top"></div>
@@ -1005,13 +946,12 @@
     <audio id="audio-player" preload="metadata"></audio>
 
     <script>
-        // ====== تنظیمات پاکت نامه جادویی ======
-        // هر زمان بخواهید نامه نمایش داده شود enabled را true کنید (یا از طریق فایل notes.json در گیت‌هاب کنترلش کنید)
+        // ====== تنظیمات پاکت نامه جادویی (متن روز پرنسس) ======
         const magicLetterConfig = {
             enabled: true,
-            id: "letter_1",
-            showOnce: false, // اگر true باشد هر نامه با id جدید فقط یک‌بار به او نمایش داده می‌شود؛ اگر false باشد هر بار که وارد اپ شود نمایش داده می‌شود
-            text: "My Dearest,\n\nEvery song in this box holds a piece of my heart that beats only for you.\nWhenever you feel lonely or miss me, just close your eyes and listen...\nI am always right there with you."
+            id: "princess_day_2026",
+            showOnce: false,
+            text: "To My One and Only Princess,\n\nIn a world full of ordinary moments, you are my favorite fairytale. Every star in this sky, every melody here, and every single beat of my heart is just for you.\n\nHappy Princess Day, my love. ♡"
         };
 
         const presetTracks = {
@@ -1048,21 +988,28 @@
         const lastMoonProgress = {};
 
         let currentTrackId = null, isPlaying = false;
+        let isPlayerOpen = false;
         let userScrolling = false;
         let userScrollTimeout = null;
         let currentLyricsY = 0;
         let targetLyricsY = 0;
+        let maxLyricsScroll = 0;
+        let lyricsRafId = null;
         let touchStartY = 0;
         let touchScrollStartY = 0;
         let dustAnimFrame = null;
         let isLetterShownThisSession = false;
+        let lastFormattedCur = '';
+        let lastFormattedDur = '';
 
         document.addEventListener('contextmenu', e => e.preventDefault());
 
         function notifyAndroidPlayerState(isOpen) {
+            isPlayerOpen = isOpen;
             if (window.AndroidBridge && typeof window.AndroidBridge.setPlayerOpen === 'function') {
                 window.AndroidBridge.setPlayerOpen(isOpen);
             }
+            updateLyricsLoopState();
         }
 
         function syncSystemNotification() {
@@ -1099,7 +1046,7 @@
             }
         }
 
-        // ====== سیستم پاکت نامه جادویی و ذرات ریزان اطراف پاکت ======
+        // ====== پاکت نامه جادویی ======
         function checkAndShowMagicLetter() {
             if (isLetterShownThisSession) return;
             if (!magicLetterConfig.enabled || !magicLetterConfig.text || !magicLetterConfig.text.trim()) return;
@@ -1133,17 +1080,14 @@
                     localStorage.setItem(storageKey, "true");
                 }
 
-                // ۱. باز شدن درِ پاکت و بالا آمدن کاغذ
                 envStage.classList.add('opening');
 
-                // ۲. محو شدن پاکت و باز شدن کامل برگه نامه برای خواندن
                 setTimeout(() => {
                     envStage.classList.add('hide-envelope');
                     letterCard.classList.add('reading');
                 }, 780);
             };
 
-            // بستن نامه با لمس فضای بیرون از برگه نامه
             overlay.onclick = (e) => {
                 if (!letterCard.classList.contains('reading')) return;
                 if (!letterCard.contains(e.target)) {
@@ -1153,7 +1097,7 @@
                             cancelAnimationFrame(dustAnimFrame);
                             dustAnimFrame = null;
                         }
-                    }, 600);
+                    }, 500);
                 }
             };
         }
@@ -1161,9 +1105,9 @@
         function startMagicDustParticles() {
             const canvas = document.getElementById('magic-dust-canvas');
             const ctx = canvas.getContext('2d');
-            let dpr = window.devicePixelRatio || 1;
-            let w = window.innerWidth;
-            let h = window.innerHeight;
+            const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+            const w = window.innerWidth;
+            const h = window.innerHeight;
             canvas.width = w * dpr;
             canvas.height = h * dpr;
             ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -1174,43 +1118,37 @@
             function spawnParticle(initial = false) {
                 const cx = w / 2;
                 const cy = h / 2;
-                // تمرکز ذرات در کناره‌های چپ و راست و لبه پایینی پاکت تا مثل آبشار جادویی به پایین بریزند
                 const sideZone = Math.random();
                 let x, y;
                 if (sideZone < 0.42) {
-                    // کناره چپ پاکت
                     x = cx - (envW / 2) + (Math.random() * 34 - 22);
                     y = cy - (envH / 2) + Math.random() * envH;
                 } else if (sideZone < 0.84) {
-                    // کناره راست پاکت
                     x = cx + (envW / 2) + (Math.random() * 34 - 12);
                     y = cy - (envH / 2) + Math.random() * envH;
                 } else {
-                    // زیر و اطراف پاکت
                     x = cx - (envW / 2) + Math.random() * envW;
                     y = cy + (envH / 2) - 10 + Math.random() * 20;
                 }
 
-                if (initial) {
-                    y += Math.random() * 140;
-                }
+                if (initial) y += Math.random() * 140;
 
                 const isGold = Math.random() > 0.35;
                 return {
                     x: x,
                     y: y,
                     vx: (Math.random() - 0.5) * 0.35,
-                    vy: 0.45 + Math.random() * 1.15, // سرعت ریزش نرم به سمت پایین
-                    r: 0.5 + Math.random() * 1.35,
-                    alpha: 0.1 + Math.random() * 0.85,
-                    maxLife: 110 + Math.random() * 110,
-                    life: initial ? Math.random() * 100 : 0,
+                    vy: 0.45 + Math.random() * 1.15,
+                    r: 0.6 + Math.random() * 1.35,
+                    alpha: 0.15 + Math.random() * 0.8,
+                    maxLife: 110 + Math.random() * 100,
+                    life: initial ? Math.random() * 90 : 0,
                     phase: Math.random() * Math.PI * 2,
-                    rgb: isGold ? '255, 240, 205' : '255, 255, 255'
+                    color: isGold ? '#FFF0CD' : '#FFFFFF'
                 };
             }
 
-            const particles = Array.from({ length: 115 }, () => spawnParticle(true));
+            const particles = Array.from({ length: 85 }, () => spawnParticle(true));
 
             function animateDust() {
                 ctx.clearRect(0, 0, w, h);
@@ -1228,17 +1166,13 @@
                     const twinkle = 0.65 + 0.35 * Math.sin(p.phase * 2);
                     const currentAlpha = p.alpha * fadeIn * fadeOut * twinkle;
 
-                    // هاله ظریف دور دانه‌های جادویی
-                    const glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 3.2);
-                    glow.addColorStop(0, `rgba(${p.rgb}, ${currentAlpha * 0.55})`);
-                    glow.addColorStop(1, `rgba(${p.rgb}, 0)`);
-                    ctx.fillStyle = glow;
+                    ctx.globalAlpha = currentAlpha * 0.35;
+                    ctx.fillStyle = p.color;
                     ctx.beginPath();
-                    ctx.arc(p.x, p.y, p.r * 3.2, 0, Math.PI * 2);
+                    ctx.arc(p.x, p.y, p.r * 2.4, 0, Math.PI * 2);
                     ctx.fill();
 
-                    // هسته درخشان دانه
-                    ctx.fillStyle = `rgba(${p.rgb}, ${currentAlpha})`;
+                    ctx.globalAlpha = currentAlpha;
                     ctx.beginPath();
                     ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
                     ctx.fill();
@@ -1247,6 +1181,7 @@
                         particles[i] = spawnParticle(false);
                     }
                 }
+                ctx.globalAlpha = 1;
                 dustAnimFrame = requestAnimationFrame(animateDust);
             }
 
@@ -1275,15 +1210,17 @@
                 const totalBeats = Math.floor(((nowMs - startTimeMs) / 1000) * beatsPerSecond);
                 numEl.innerText = Math.max(0, totalBeats).toLocaleString('en-US');
 
-                const d = Math.floor(elapsedSeconds / 86400);
-                const h = Math.floor((elapsedSeconds % 86400) / 3600);
-                const m = Math.floor((elapsedSeconds % 3600) / 60);
-                const s = elapsedSeconds % 60;
+                if (overlayEl.classList.contains('visible')) {
+                    const d = Math.floor(elapsedSeconds / 86400);
+                    const h = Math.floor((elapsedSeconds % 86400) / 3600);
+                    const m = Math.floor((elapsedSeconds % 3600) / 60);
+                    const s = elapsedSeconds % 60;
 
-                if (daysEl) daysEl.innerText = d;
-                if (hoursEl) hoursEl.innerText = h < 10 ? '0' + h : h;
-                if (minsEl) minsEl.innerText = m < 10 ? '0' + m : m;
-                if (secsEl) secsEl.innerText = s < 10 ? '0' + s : s;
+                    if (daysEl) daysEl.innerText = d;
+                    if (hoursEl) hoursEl.innerText = h < 10 ? '0' + h : h;
+                    if (minsEl) minsEl.innerText = m < 10 ? '0' + m : m;
+                    if (secsEl) secsEl.innerText = s < 10 ? '0' + s : s;
+                }
             }
 
             updateAllTimeDisplays();
@@ -1292,8 +1229,8 @@
             function startHeartbeatExperience(e) {
                 if (e && e.cancelable) e.preventDefault();
                 boxEl.classList.add('pressing');
-                updateAllTimeDisplays();
                 overlayEl.classList.add('visible');
+                updateAllTimeDisplays();
 
                 triggerSingleHeartbeatPulse();
                 if (vibrationInterval) clearInterval(vibrationInterval);
@@ -1323,15 +1260,16 @@
             overlayEl.addEventListener('click', stopHeartbeatExperience);
         }
 
+        // ====== آسمان پرستاره فوق‌سبک با کشِ اسپرایت (بدون ساخت گرادیان در حلقه) ======
         function initStarsCanvas() {
             const canvas = document.getElementById('stars-canvas');
             const ctx = canvas.getContext('2d');
-            let dpr = window.devicePixelRatio || 1;
+            let dpr = Math.min(window.devicePixelRatio || 1, 1.5);
             let width = window.innerWidth;
             let height = window.innerHeight;
 
             function resizeCanvas() {
-                dpr = window.devicePixelRatio || 1;
+                dpr = Math.min(window.devicePixelRatio || 1, 1.5);
                 width = window.innerWidth;
                 height = window.innerHeight;
                 canvas.width = width * dpr;
@@ -1341,23 +1279,32 @@
             resizeCanvas();
             window.addEventListener('resize', resizeCanvas);
 
-            const palettes = [
-                '255, 255, 255',
-                '255, 248, 232',
-                '225, 238, 255',
-                '242, 232, 255'
-            ];
+            // پیش‌رندر کردن هاله ستاره در یک بوم کوچک ۳۲x۳۲ (فقط یک‌بار در کل برنامه)
+            const glowSprite = document.createElement('canvas');
+            glowSprite.width = 32;
+            glowSprite.height = 32;
+            const gCtx = glowSprite.getContext('2d');
+            const radGrad = gCtx.createRadialGradient(16, 16, 0, 16, 16, 16);
+            radGrad.addColorStop(0, 'rgba(255, 252, 242, 0.85)');
+            radGrad.addColorStop(0.35, 'rgba(255, 248, 235, 0.28)');
+            radGrad.addColorStop(1, 'rgba(255, 248, 235, 0)');
+            gCtx.fillStyle = radGrad;
+            gCtx.beginPath();
+            gCtx.arc(16, 16, 16, 0, Math.PI * 2);
+            gCtx.fill();
 
-            const stars = Array.from({ length: 135 }, (_, i) => {
-                const isBright = i < 18;
+            const palettes = ['#FFFFFF', '#FFF8E8', '#E1EEFF', '#F2E8FF'];
+
+            const stars = Array.from({ length: 110 }, (_, i) => {
+                const isBright = i < 15;
                 return {
                     x: Math.random() * width,
                     y: Math.random() * height,
-                    r: isBright ? (1.3 + Math.random() * 1.1) : (0.5 + Math.random() * 1.0),
-                    rgb: palettes[Math.floor(Math.random() * palettes.length)],
+                    r: isBright ? (1.3 + Math.random() * 1.0) : (0.55 + Math.random() * 0.95),
+                    color: palettes[Math.floor(Math.random() * palettes.length)],
                     phase: Math.random() * Math.PI * 2,
-                    freq: 0.012 + Math.random() * 0.028,
-                    minAlpha: isBright ? 0.25 : 0.08,
+                    freq: 0.012 + Math.random() * 0.025,
+                    minAlpha: isBright ? 0.28 : 0.1,
                     maxAlpha: isBright ? 1.0 : (0.55 + Math.random() * 0.35),
                     sparkle: isBright
                 };
@@ -1370,22 +1317,17 @@
                     const s = stars[i];
                     s.phase += s.freq;
                     const wave = (Math.sin(s.phase) + 1) * 0.5;
-                    const alpha = s.minAlpha + Math.pow(wave, 1.8) * (s.maxAlpha - s.minAlpha);
+                    const alpha = s.minAlpha + (wave * wave) * (s.maxAlpha - s.minAlpha);
 
                     if (s.sparkle) {
-                        const glowRadius = s.r * (3.5 + wave * 2.5);
-                        const grad = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, glowRadius);
-                        grad.addColorStop(0, `rgba(${s.rgb}, ${alpha * 0.65})`);
-                        grad.addColorStop(0.4, `rgba(${s.rgb}, ${alpha * 0.2})`);
-                        grad.addColorStop(1, `rgba(${s.rgb}, 0)`);
-                        ctx.fillStyle = grad;
-                        ctx.beginPath();
-                        ctx.arc(s.x, s.y, glowRadius, 0, Math.PI * 2);
-                        ctx.fill();
+                        const glowSize = s.r * (7.5 + wave * 4);
+                        ctx.globalAlpha = alpha * 0.75;
+                        ctx.drawImage(glowSprite, s.x - glowSize / 2, s.y - glowSize / 2, glowSize, glowSize);
 
-                        if (wave > 0.65) {
-                            const spikeLen = s.r * (2.8 + (wave - 0.65) * 8);
-                            ctx.strokeStyle = `rgba(${s.rgb}, ${(wave - 0.65) * 1.4})`;
+                        if (wave > 0.68) {
+                            const spikeLen = s.r * (2.6 + (wave - 0.68) * 7.5);
+                            ctx.globalAlpha = (wave - 0.68) * 1.35;
+                            ctx.strokeStyle = s.color;
                             ctx.lineWidth = 0.7;
                             ctx.beginPath();
                             ctx.moveTo(s.x - spikeLen, s.y);
@@ -1396,11 +1338,13 @@
                         }
                     }
 
-                    ctx.fillStyle = `rgba(${s.rgb}, ${alpha})`;
+                    ctx.globalAlpha = alpha;
+                    ctx.fillStyle = s.color;
                     ctx.beginPath();
                     ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
                     ctx.fill();
                 }
+                ctx.globalAlpha = 1;
                 requestAnimationFrame(animateStars);
             }
             requestAnimationFrame(animateStars);
@@ -1559,9 +1503,16 @@
             coverCard3d.classList.toggle('is-flipped');
         });
 
+        // محاسبه ابعاد اسکرول لیریک فقط یک‌بار هنگام تغییر متن یا تغییر سایز صفحه (حذف Layout Thrashing)
+        function recalculateLyricsBounds() {
+            maxLyricsScroll = Math.max(0, lyricsInner.offsetHeight - playerLyrics.clientHeight);
+        }
+        window.addEventListener('resize', recalculateLyricsBounds);
+
         playerLyrics.addEventListener('touchstart', e => {
             if (!e.touches.length) return;
             userScrolling = true;
+            recalculateLyricsBounds();
             touchStartY = e.touches[0].clientY;
             touchScrollStartY = currentLyricsY;
             if (userScrollTimeout) clearTimeout(userScrollTimeout);
@@ -1569,9 +1520,8 @@
 
         playerLyrics.addEventListener('touchmove', e => {
             if (!userScrolling || !e.touches.length) return;
-            const maxScroll = Math.max(0, lyricsInner.offsetHeight - playerLyrics.clientHeight);
             const deltaY = touchStartY - e.touches[0].clientY;
-            currentLyricsY = Math.max(0, Math.min(maxScroll, touchScrollStartY + deltaY));
+            currentLyricsY = Math.max(0, Math.min(maxLyricsScroll, touchScrollStartY + deltaY));
             targetLyricsY = currentLyricsY;
             lyricsInner.style.transform = `translate3d(0, ${-currentLyricsY.toFixed(2)}px, 0)`;
         }, { passive: true });
@@ -1582,56 +1532,72 @@
         }, { passive: true });
 
         function loadLyricsForTrack(tr) {
-            let rawText = lyricsCache[tr.id];
-            if (rawText === undefined) {
-                if (window.AndroidBridge && typeof window.AndroidBridge.getLyrics === 'function') {
-                    rawText = window.AndroidBridge.getLyrics(tr.mp3) || '';
-                } else {
-                    rawText = '';
-                }
-                lyricsCache[tr.id] = rawText;
-            }
-
             currentLyricsY = 0;
             targetLyricsY = 0;
+            maxLyricsScroll = 0;
             lyricsInner.style.transform = 'translate3d(0, 0, 0)';
 
-            if (!rawText || !rawText.trim()) {
-                lyricsInner.innerText = '✨ Instrumental / No Lyrics ✨';
-                return;
-            }
+            // تاخیر کوتاه برای اینکه انیمیشن کلیک و شروع پخش آهنگ بدون کوچک‌ترین مکث انجام شود
+            setTimeout(() => {
+                if (!tr || currentTrackId !== tr.id) return;
+                let rawText = lyricsCache[tr.id];
+                if (rawText === undefined) {
+                    if (window.AndroidBridge && typeof window.AndroidBridge.getLyrics === 'function') {
+                        rawText = window.AndroidBridge.getLyrics(tr.mp3) || '';
+                    } else {
+                        rawText = '';
+                    }
+                    lyricsCache[tr.id] = rawText;
+                }
 
-            const cleanedLines = rawText
-                .split(/\r?\n/)
-                .filter(line => !/^\[(ti|ar|al|by|offset):/i.test(line.trim()))
-                .map(line => line.replace(/\[\d{1,2}:\d{2}(?:\.\d{1,3})?\]/g, '').trim());
+                if (!rawText || !rawText.trim()) {
+                    lyricsInner.innerText = '✨ Instrumental / No Lyrics ✨';
+                } else {
+                    const cleanedLines = rawText
+                        .split(/\r?\n/)
+                        .filter(line => !/^\[(ti|ar|al|by|offset):/i.test(line.trim()))
+                        .map(line => line.replace(/\[\d{1,2}:\d{2}(?:\.\d{1,3})?\]/g, '').trim());
 
-            lyricsInner.innerText = cleanedLines.join('\n').trim() || '✨ Instrumental / No Lyrics ✨';
+                    lyricsInner.innerText = cleanedLines.join('\n').trim() || '✨ Instrumental / No Lyrics ✨';
+                }
+                requestAnimationFrame(recalculateLyricsBounds);
+            }, 90);
         }
 
-        function startSmoothLyricsLoop() {
-            function step() {
-                if (playerPage.classList.contains('open') && !userScrolling) {
-                    const dur = audioPlayer.duration;
-                    if (dur && !isNaN(dur) && dur > 0) {
-                        const maxScroll = Math.max(0, lyricsInner.offsetHeight - playerLyrics.clientHeight);
-                        if (maxScroll > 0) {
-                            const cur = audioPlayer.currentTime;
-                            const startDelay = Math.min(4, dur * 0.04);
-                            const endMargin = Math.max(cur, dur * 0.94);
-                            const progress = Math.max(0, Math.min(1, (cur - startDelay) / Math.max(1, endMargin - startDelay)));
-                            targetLyricsY = progress * maxScroll;
+        // حلقه اسکرول لیریک فقط وقتی روشن است که هم پلیر باز باشد و هم آهنگ در حال پخش باشد
+        function lyricsLoopStep() {
+            if (!isPlayerOpen || !isPlaying) {
+                lyricsRafId = null;
+                return;
+            }
+            if (!userScrolling && maxLyricsScroll > 0) {
+                const dur = audioPlayer.duration;
+                if (dur && !isNaN(dur) && dur > 0) {
+                    const cur = audioPlayer.currentTime;
+                    const startDelay = Math.min(4, dur * 0.04);
+                    const endMargin = Math.max(cur, dur * 0.94);
+                    const progress = Math.max(0, Math.min(1, (cur - startDelay) / Math.max(1, endMargin - startDelay)));
+                    targetLyricsY = progress * maxLyricsScroll;
 
-                            currentLyricsY += (targetLyricsY - currentLyricsY) * 0.08;
-                            if (Math.abs(targetLyricsY - currentLyricsY) > 0.02) {
-                                lyricsInner.style.transform = `translate3d(0, ${-currentLyricsY.toFixed(2)}px, 0)`;
-                            }
-                        }
+                    currentLyricsY += (targetLyricsY - currentLyricsY) * 0.08;
+                    if (Math.abs(targetLyricsY - currentLyricsY) > 0.03) {
+                        lyricsInner.style.transform = `translate3d(0, ${-currentLyricsY.toFixed(2)}px, 0)`;
                     }
                 }
-                requestAnimationFrame(step);
             }
-            requestAnimationFrame(step);
+            lyricsRafId = requestAnimationFrame(lyricsLoopStep);
+        }
+
+        function updateLyricsLoopState() {
+            if (isPlayerOpen && isPlaying) {
+                recalculateLyricsBounds();
+                if (!lyricsRafId) {
+                    lyricsRafId = requestAnimationFrame(lyricsLoopStep);
+                }
+            } else if (lyricsRafId) {
+                cancelAnimationFrame(lyricsRafId);
+                lyricsRafId = null;
+            }
         }
 
         function formatTime(s) {
@@ -1645,10 +1611,20 @@
             if (dur && !isNaN(dur) && dur > 0) {
                 const cur = audioPlayer.currentTime;
                 const ratio = cur / dur;
-                const p = ratio * 100;
+                const p = (ratio * 100).toFixed(1);
                 progressBar.value = p;
-                currentTimeSpan.innerText = formatTime(cur);
-                durationTimeSpan.innerText = formatTime(dur);
+
+                const curStr = formatTime(cur);
+                if (curStr !== lastFormattedCur) {
+                    lastFormattedCur = curStr;
+                    currentTimeSpan.innerText = curStr;
+                }
+                const durStr = formatTime(dur);
+                if (durStr !== lastFormattedDur) {
+                    lastFormattedDur = durStr;
+                    durationTimeSpan.innerText = durStr;
+                }
+
                 progressBar.style.background = `linear-gradient(to right, white 0%, white ${p}%, rgba(255,255,255,0.2) ${p}%, rgba(255,255,255,0.2) 100%)`;
                 if (currentTrackId) updateMoonForTrack(currentTrackId, ratio);
             } else {
@@ -1693,10 +1669,9 @@
             }
             currentTrackId = tid;
             highlightActiveTrack(tid);
-            loadLyricsForTrack(tr);
             audioPlayer.src = tr.mp3;
-            audioPlayer.load();
             audioPlayer.play().catch(() => {});
+            loadLyricsForTrack(tr);
         }
 
         function togglePlayPause() {
@@ -1729,17 +1704,20 @@
             if (!tr) return;
             updateCoverAndNote(tr);
 
+            mainPage.classList.add('page-behind');
+            playerPage.classList.add('open');
+            notifyAndroidPlayerState(true);
+
             if (currentTrackId !== tid) {
                 switchTrack(tid);
             } else if (!lyricsInner.innerText) {
                 loadLyricsForTrack(tr);
+            } else {
+                requestAnimationFrame(recalculateLyricsBounds);
             }
 
             updatePlayPauseButton();
             updateProgress();
-            mainPage.classList.add('page-behind');
-            playerPage.classList.add('open');
-            notifyAndroidPlayerState(true);
         }
 
         function closePlayerPage() {
@@ -1751,6 +1729,7 @@
 
         function renderTracks() {
             trackListDiv.innerHTML = '';
+            const fragment = document.createDocumentFragment();
 
             tracks.forEach(tr => {
                 const td = document.createElement('div');
@@ -1770,36 +1749,41 @@
                     playDirectly(tr.id);
                 });
 
-                td.innerHTML = `<img src="${tr.cover}" class="cover-img" alt="cover" loading="lazy" onerror="this.src='${fallbackSvg}'"><div class="track-info"><div class="track-title">${tr.title}</div><div class="track-artist">${tr.artist}</div></div>`;
+                td.innerHTML = `<img src="${tr.cover}" class="cover-img" alt="cover" decoding="async" onerror="this.src='${fallbackSvg}'"><div class="track-info"><div class="track-title">${tr.title}</div><div class="track-artist">${tr.artist}</div></div>`;
                 td.appendChild(cv);
                 td.addEventListener('click', e => {
                     if (e.target !== cv) openPlayerPage(tr.id);
                 });
-                trackListDiv.appendChild(td);
+                fragment.appendChild(td);
             });
+
+            trackListDiv.appendChild(fragment);
         }
 
         audioPlayer.addEventListener('play', () => {
             isPlaying = true;
             updatePlayPauseButton();
-            syncSystemNotification();
+            updateLyricsLoopState();
+            setTimeout(syncSystemNotification, 50);
         });
 
         audioPlayer.addEventListener('pause', () => {
             isPlaying = false;
             updatePlayPauseButton();
-            syncSystemNotification();
+            updateLyricsLoopState();
+            setTimeout(syncSystemNotification, 50);
         });
 
         audioPlayer.addEventListener('ended', () => {
             isPlaying = false;
             updatePlayPauseButton();
+            updateLyricsLoopState();
             if (currentTrackId) updateMoonForTrack(currentTrackId, 1, true);
             let nid = currentTrackId + 1 > tracks.length ? 1 : currentTrackId + 1;
             const nt = tracks.find(t => t.id === nid);
             if (nt) {
                 switchTrack(nid);
-                if (playerPage.classList.contains('open')) {
+                if (isPlayerOpen) {
                     updateCoverAndNote(nt);
                 }
                 updateProgress();
@@ -1809,7 +1793,7 @@
         audioPlayer.addEventListener('timeupdate', updateProgress);
         audioPlayer.addEventListener('loadedmetadata', () => {
             updateProgress();
-            syncSystemNotification();
+            setTimeout(syncSystemNotification, 50);
         });
         progressBar.addEventListener('input', seekTo);
         playPauseBtn.addEventListener('click', togglePlayPause);
@@ -1831,7 +1815,6 @@
                         renderTracks();
                         initHeartbeatCounter();
                         initStarsCanvas();
-                        startSmoothLyricsLoop();
 
                         if (window.AndroidBridge && typeof window.AndroidBridge.syncWithCloud === 'function') {
                             window.AndroidBridge.syncWithCloud();
