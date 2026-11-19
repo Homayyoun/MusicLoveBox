@@ -1600,23 +1600,26 @@
             if (dur && !isNaN(dur) && dur > 0) {
                 const cur = audioPlayer.currentTime;
                 const ratio = cur / dur;
-                const p = (ratio * 100).toFixed(1);
-                progressBar.value = p;
 
-                const curStr = formatTime(cur);
-                if (curStr !== lastFormattedCur) {
-                    lastFormattedCur = curStr;
-                    currentTimeSpan.innerText = curStr;
-                }
-                const durStr = formatTime(dur);
-                if (durStr !== lastFormattedDur) {
-                    lastFormattedDur = durStr;
-                    durationTimeSpan.innerText = durStr;
-                }
+                if (isPlayerOpen) {
+                    const p = (ratio * 100).toFixed(1);
+                    progressBar.value = p;
 
-                progressBar.style.background = `linear-gradient(to right, white 0%, white ${p}%, rgba(255,255,255,0.2) ${p}%, rgba(255,255,255,0.2) 100%)`;
-                if (currentTrackId) updateMoonForTrack(currentTrackId, ratio);
-            } else {
+                    const curStr = formatTime(cur);
+                    if (curStr !== lastFormattedCur) {
+                        lastFormattedCur = curStr;
+                        currentTimeSpan.innerText = curStr;
+                    }
+                    const durStr = formatTime(dur);
+                    if (durStr !== lastFormattedDur) {
+                        lastFormattedDur = durStr;
+                        durationTimeSpan.innerText = durStr;
+                    }
+                    progressBar.style.background = `linear-gradient(to right, white 0%, white ${p}%, rgba(255,255,255,0.2) ${p}%, rgba(255,255,255,0.2) 100%)`;
+                } else if (currentTrackId) {
+                    updateMoonForTrack(currentTrackId, ratio);
+                }
+            } else if (isPlayerOpen) {
                 progressBar.value = 0;
                 currentTimeSpan.innerText = '0:00';
                 durationTimeSpan.innerText = '0:00';
@@ -1714,6 +1717,7 @@
             playerPage.classList.remove('open');
             mainPage.classList.remove('page-behind');
             notifyAndroidPlayerState(false);
+            updateProgress();
         }
 
         function renderTracks() {
