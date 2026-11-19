@@ -159,7 +159,7 @@ public class MainActivity extends AppCompatActivity {
                 Uri uri = request.getUrl();
                 String urlStr = uri.toString();
 
-                // ۱. اگر عکس جدیدی (مثل header.png یا quote.png) از گیت‌هاب آپدیت شده باشد، نسخه جدید را نشان بده
+                // ۱. لود عکس‌های آپدیت‌شده رابط کاربری از گیت‌هاب (مثل header.png یا quote.png)
                 if (urlStr.startsWith("file:///android_asset/media/images/")) {
                     String imgName = urlStr.replace("file:///android_asset/media/images/", "");
                     File cloudImg = new File(new File(getFilesDir(), "cloud_images"), imgName);
@@ -171,12 +171,12 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
 
-                // ۲. استخراج کاور از داخل فایل MP3
+                // ۲. استخراج خودکار، کم‌حجم‌سازی و کش کردن کاور از داخل خود فایل MP3
                 if ("https".equals(uri.getScheme()) && "lovebox.cover".equals(uri.getHost())) {
                     String path = uri.getPath();
                     if (path != null && path.length() > 1) {
                         String fileName = Uri.decode(path.substring(1));
-                        byte[] coverBytes = extractEmbeddedCover(fileName);
+                        byte[] coverBytes = extractEmbeddedCoverOptimized(fileName);
                         if (coverBytes != null) {
                             return new WebResourceResponse("image/jpeg", "UTF-8", new ByteArrayInputStream(coverBytes));
                         }
@@ -186,7 +186,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // اگر نسخه آپدیت‌شده‌ای از m.html از گیت‌هاب دریافت شده بود، آن را اجرا کن؛ وگرنه نسخه اصلی داخل برنامه
         File cloudHtml = new File(getFilesDir(), "cloud_m.html");
         if (cloudHtml.exists() && cloudHtml.length() > 500) {
             try (InputStream is = new FileInputStream(cloudHtml)) {
@@ -198,23 +197,76 @@ public class MainActivity extends AppCompatActivity {
         webView.loadUrl("file:///android_asset/m.html");
     }
 
-    private byte[] extractEmbeddedCover(String fileName) {
+    // استخراج کاور از MP3 با کوچک‌سازی خودکار به ۳۶۰ پیکسل و ذخیره در کش (بدون لگ اسکرول)
+    private byte[] extractEmbeddedCoverOptimized(String fileName) {
+        File cacheDir = new File(getCacheDir(), "cover_cache");
+        if (!cacheDir.exists()) cacheDir.mkdirs();
+        File cachedFile = new File(cacheDir, fileName + ".jpg");
+
+        if (cachedFile.exists() && cachedFile.length() > 0) {
+            try (FileInputStream fis = new FileInputStream(cachedFile)) {
+                return readStreamBytes(fis);
+            } catch (Exception ignored) {}
+        }
+
         MediaMetadataRetriever retriever = new MediaMetadataRetriever();
         try {
             File cloudFile = new File(new File(getFilesDir(), "cloud_audios"), fileName);
             if (cloudFile.exists()) {
                 retriever.setDataSource(cloudFile.getAbsolutePath());
-                return retriever.getEmbeddedPicture();
             } else {
                 try (AssetFileDescriptor afd = getAssets().openFd("media/audios/" + fileName)) {
                     retriever.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
-                    return retriever.getEmbeddedPicture();
                 }
             }
-        } catch (Exception e) {
-            return null;
+            byte[] rawArt = retriever.getEmbeddedPicture();
+            if (rawArt != null && rawArt.length > 0) {
+                byte[] optimized = optimizeCoverBytes(rawArt, 360);
+                try (FileOutputStream fos = new FileOutputStream(cachedFile)) {
+                    fos.write(optimized);
+                } catch (Exception ignored) {}
+                return optimized;
+            }
+        } catch (Exception ignored) {
         } finally {
             try { retriever.release(); } catch (Exception ignored) {}
+        }
+        return null;
+    }
+
+    private byte[] optimizeCoverBytes(byte[] raw, int maxDim) {
+        try {
+            BitmapFactory.Options bounds = new BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            BitmapFactory.decodeByteArray(raw, 0, raw.length, bounds);
+
+            int inSampleSize = 1;
+            int w = bounds.outWidth;
+            int h = bounds.outHeight;
+            while ((w / inSampleSize) > maxDim * 2 || (h / inSampleSize) > maxDim * 2) {
+                inSampleSize *= 2;
+            }
+
+            BitmapFactory.Options opts = new BitmapFactory.Options();
+            opts.inSampleSize = inSampleSize;
+            Bitmap bmp = BitmapFactory.decodeByteArray(raw, 0, raw.length, opts);
+            if (bmp == null) return raw;
+
+            int bw = bmp.getWidth();
+            int bh = bmp.getHeight();
+            if (bw > maxDim || bh > maxDim) {
+                float scale = Math.min((float) maxDim / bw, (float) maxDim / bh);
+                Bitmap scaled = Bitmap.createScaledBitmap(bmp, Math.round(bw * scale), Math.round(bh * scale), true);
+                if (scaled != bmp) bmp.recycle();
+                bmp = scaled;
+            }
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            bmp.compress(Bitmap.CompressFormat.JPEG, 82, baos);
+            bmp.recycle();
+            return baos.toByteArray();
+        } catch (Exception e) {
+            return raw;
         }
     }
 
@@ -308,7 +360,6 @@ public class MainActivity extends AppCompatActivity {
             return prefs.getString("notes_json", "{}");
         }
 
-        // بررسی خودکار آپدیت‌های ظاهر برنامه (m.html)، یادداشت‌ها، عکس‌ها و آهنگ‌ها در گیت‌هاب
         @JavascriptInterface
         public void syncWithCloud() {
             if (isSyncing) return;
@@ -318,7 +369,6 @@ public class MainActivity extends AppCompatActivity {
                 SharedPreferences prefs = getSharedPreferences("lovebox_cloud", Context.MODE_PRIVATE);
 
                 try {
-                    // ۱. بررسی آپدیت شدن فایل m.html در گیت‌هاب (برای آپدیت ظاهر و امکانات از راه دور)
                     String remoteHtml = fetchUrlText("https://raw.githubusercontent.com/" + GITHUB_OWNER + "/" + GITHUB_REPO + "/" + GITHUB_BRANCH + "/app/src/main/assets/m.html?t=" + System.currentTimeMillis());
                     if (remoteHtml == null) {
                         remoteHtml = fetchUrlText("https://cdn.jsdelivr.net/gh/" + GITHUB_OWNER + "/" + GITHUB_REPO + "@" + GITHUB_BRANCH + "/app/src/main/assets/m.html");
@@ -330,7 +380,6 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
 
-                    // ۲. بررسی فایل notes.json در گیت‌هاب
                     String notesContent = fetchUrlText("https://raw.githubusercontent.com/" + GITHUB_OWNER + "/" + GITHUB_REPO + "/" + GITHUB_BRANCH + "/notes.json?t=" + System.currentTimeMillis());
                     if (notesContent == null) {
                         notesContent = fetchUrlText("https://cdn.jsdelivr.net/gh/" + GITHUB_OWNER + "/" + GITHUB_REPO + "@" + GITHUB_BRANCH + "/notes.json");
@@ -343,7 +392,6 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
 
-                    // ۳. بررسی پوشه audios در گیت‌هاب برای دانلود آهنگ‌های جدید
                     String[] builtInAudios = getAssets().list("media/audios");
                     Set<String> builtInAudioSet = new HashSet<>();
                     if (builtInAudios != null) Collections.addAll(builtInAudioSet, builtInAudios);
@@ -372,6 +420,7 @@ public class MainActivity extends AppCompatActivity {
                                     }
                                     if (downloaded) {
                                         prefs.edit().putString("audio_sha_" + name, sha).apply();
+                                        new File(new File(getCacheDir(), "cover_cache"), name + ".jpg").delete();
                                         hasTrackOrNoteChanges = true;
                                     }
                                 }
@@ -379,7 +428,6 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
 
-                    // ۴. بررسی پوشه images در گیت‌هاب (هم کاورهای جدید و هم آپدیت عکس‌های قبلی مثل quote.png)
                     String[] builtInImages = getAssets().list("media/images");
                     Set<String> builtInImageSet = new HashSet<>();
                     if (builtInImages != null) Collections.addAll(builtInImageSet, builtInImages);
@@ -399,7 +447,6 @@ public class MainActivity extends AppCompatActivity {
                                 String savedSha = prefs.getString("img_sha_" + name, "");
                                 File targetImg = new File(cloudImageDir, name);
 
-                                // اگر عکس جدید است یا عکس قبلی را در گیت‌هاب عوض کرده‌اید، دانلودش کن
                                 if (savedSha.isEmpty() && builtInImageSet.contains(name)) {
                                     prefs.edit().putString("img_sha_" + name, sha).apply();
                                 } else if (!sha.equals(savedSha) || (!builtInImageSet.contains(name) && !targetImg.exists())) {
@@ -437,16 +484,7 @@ public class MainActivity extends AppCompatActivity {
             JSONArray jsonArray = new JSONArray();
             try {
                 String[] assetAudios = getAssets().list("media/audios");
-                String[] assetImages = getAssets().list("media/images");
-                Set<String> assetImageSet = new HashSet<>();
-                if (assetImages != null) Collections.addAll(assetImageSet, assetImages);
-
                 File cloudAudioDir = new File(getFilesDir(), "cloud_audios");
-                File cloudImageDir = new File(getFilesDir(), "cloud_images");
-                Set<String> cloudImageSet = new HashSet<>();
-                if (cloudImageDir.exists() && cloudImageDir.list() != null) {
-                    Collections.addAll(cloudImageSet, cloudImageDir.list());
-                }
 
                 Map<String, Boolean> isCloudMap = new HashMap<>();
                 List<String> allMp3s = new ArrayList<>();
@@ -516,19 +554,8 @@ public class MainActivity extends AppCompatActivity {
                         artist = "My Love's Playlist";
                     }
 
-                    int songNum = extractNumber(fileName);
-                    String coverUrl;
-                    if (songNum != -1 && cloudImageSet.contains("cover" + songNum + ".jpg")) {
-                        coverUrl = Uri.fromFile(new File(cloudImageDir, "cover" + songNum + ".jpg")).toString();
-                    } else if (songNum != -1 && cloudImageSet.contains("cover" + songNum + ".png")) {
-                        coverUrl = Uri.fromFile(new File(cloudImageDir, "cover" + songNum + ".png")).toString();
-                    } else if (songNum != -1 && assetImageSet.contains("cover" + songNum + ".jpg")) {
-                        coverUrl = "file:///android_asset/media/images/cover" + songNum + ".jpg";
-                    } else if (songNum != -1 && assetImageSet.contains("cover" + songNum + ".png")) {
-                        coverUrl = "file:///android_asset/media/images/cover" + songNum + ".png";
-                    } else {
-                        coverUrl = "https://lovebox.cover/" + Uri.encode(fileName);
-                    }
+                    // استخراج خودکار کاور از داخل فایل MP3 برای همه آهنگ‌ها
+                    String coverUrl = "https://lovebox.cover/" + Uri.encode(fileName);
 
                     JSONObject obj = new JSONObject();
                     obj.put("id", idCounter++);
@@ -572,14 +599,18 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private String readStreamText(InputStream is) throws IOException {
+    private byte[] readStreamBytes(InputStream is) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        byte[] buffer = new byte[1024];
+        byte[] buffer = new byte[4096];
         int len;
         while ((len = is.read(buffer)) != -1) {
             baos.write(buffer, 0, len);
         }
-        return baos.toString("UTF-8");
+        return baos.toByteArray();
+    }
+
+    private String readStreamText(InputStream is) throws IOException {
+        return new String(readStreamBytes(is), StandardCharsets.UTF_8);
     }
 
     private String fetchUrlText(String urlStr) {
