@@ -22,14 +22,20 @@ import android.graphics.Rect;
 import android.graphics.Shader;
 import android.graphics.drawable.Icon;
 import android.media.MediaMetadataRetriever;
+import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 
+import java.io.File;
 import java.io.InputStream;
 import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class MusicNotificationService extends Service {
 
@@ -54,12 +60,20 @@ public class MusicNotificationService extends Service {
     private String lastCoverKey = "";
     private Bitmap cachedArtwork = null;
     private Icon smallMusicIcon = null;
+    private Icon iconPlay, iconPause, iconNext, iconPrev;
+
+    private final ExecutorService bgExecutor = Executors.newSingleThreadExecutor();
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     @Override
     public void onCreate() {
         super.onCreate();
         createNotificationChannel();
         smallMusicIcon = createCleanSmallIcon();
+        iconPlay = createCleanTransportIcon("play");
+        iconPause = createCleanTransportIcon("pause");
+        iconNext = createCleanTransportIcon("next");
+        iconPrev = createCleanTransportIcon("prev");
 
         mediaSession = new MediaSessionCompat(this, "MusicLoveBoxSession");
         mediaSession.setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS | MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS);
@@ -103,31 +117,41 @@ public class MusicNotificationService extends Service {
             } else if (ACTION_PREV.equals(action)) {
                 if (callback != null) callback.onPrev();
             } else if (ACTION_UPDATE.equals(action)) {
-                String title = intent.getStringExtra("title");
-                String artist = intent.getStringExtra("artist");
-                String coverUrl = intent.getStringExtra("coverUrl");
-                String mp3Url = intent.getStringExtra("mp3Url");
-                boolean isPlaying = intent.getBooleanExtra("isPlaying", false);
-                long position = intent.getLongExtra("position", 0L);
-                long duration = intent.getLongExtra("duration", 0L);
+                final String title = intent.getStringExtra("title");
+                final String artist = intent.getStringExtra("artist");
+                final String coverUrl = intent.getStringExtra("coverUrl");
+                final String mp3Url = intent.getStringExtra("mp3Url");
+                final boolean isPlaying = intent.getBooleanExtra("isPlaying", false);
+                final long position = intent.getLongExtra("position", 0L);
+                final long duration = intent.getLongExtra("duration", 0L);
 
-                updateMediaNotification(title, artist, coverUrl, mp3Url, isPlaying, position, duration);
+                // انتقال کل پردازش سنگین عکس و نوتیفیکیشن به ترد پس‌زمینه (حذف کامل لگ هنگام پخش)
+                bgExecutor.execute(() -> {
+                    String safeTitle = (title != null) ? title : "Mavi";
+                    String safeArtist = (artist != null) ? artist : "";
+                    String key = (coverUrl != null ? coverUrl : "") + "|" + (mp3Url != null ? mp3Url : "");
+
+                    Bitmap artworkToUse;
+                    if (!key.equals(lastCoverKey) || cachedArtwork == null) {
+                        lastCoverKey = key;
+                        Bitmap rawCover = loadTrackCoverSampled(coverUrl, mp3Url);
+                        cachedArtwork = createSeamlessStarryCover(rawCover, safeTitle.hashCode());
+                        if (rawCover != null && !rawCover.isRecycled()) {
+                            rawCover.recycle();
+                        }
+                    }
+                    artworkToUse = cachedArtwork;
+
+                    mainHandler.post(() -> publishNotification(safeTitle, safeArtist, artworkToUse, isPlaying, position, duration));
+                });
             }
         }
         return START_NOT_STICKY;
     }
 
-    private void updateMediaNotification(String title, String artist, String coverUrl, String mp3Url,
-                                         boolean isPlaying, long position, long duration) {
-        if (title == null) title = "Music Love Box";
-        if (artist == null) artist = "";
-
-        String key = (coverUrl != null ? coverUrl : "") + "|" + (mp3Url != null ? mp3Url : "");
-        if (!key.equals(lastCoverKey) || cachedArtwork == null) {
-            lastCoverKey = key;
-            Bitmap rawCover = loadTrackCover(coverUrl, mp3Url);
-            cachedArtwork = createSeamlessStarryCover(rawCover, title.hashCode());
-        }
+    private void publishNotification(String title, String artist, Bitmap artwork,
+                                     boolean isPlaying, long position, long duration) {
+        if (mediaSession == null) return;
 
         int state = isPlaying ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED;
         float speed = isPlaying ? 1.0f : 0.0f;
@@ -149,8 +173,8 @@ public class MusicNotificationService extends Service {
                 .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
                 .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist)
                 .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration)
-                .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, cachedArtwork)
-                .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, cachedArtwork)
+                .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, artwork)
+                .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artwork)
                 .build();
         mediaSession.setMetadata(metadata);
 
@@ -164,13 +188,11 @@ public class MusicNotificationService extends Service {
         PendingIntent playPauseIntent = createActionIntent(ACTION_PLAY_PAUSE, 2);
         PendingIntent nextIntent = createActionIntent(ACTION_NEXT, 3);
 
-        Notification.Action prevAction = new Notification.Action.Builder(
-                createCleanTransportIcon("prev"), "Previous", prevIntent).build();
+        Notification.Action prevAction = new Notification.Action.Builder(iconPrev, "Previous", prevIntent).build();
         Notification.Action playPauseAction = new Notification.Action.Builder(
-                createCleanTransportIcon(isPlaying ? "pause" : "play"),
+                isPlaying ? iconPause : iconPlay,
                 isPlaying ? "Pause" : "Play", playPauseIntent).build();
-        Notification.Action nextAction = new Notification.Action.Builder(
-                createCleanTransportIcon("next"), "Next", nextIntent).build();
+        Notification.Action nextAction = new Notification.Action.Builder(iconNext, "Next", nextIntent).build();
 
         Notification.MediaStyle mediaStyle = new Notification.MediaStyle()
                 .setMediaSession((android.media.session.MediaSession.Token) mediaSession.getSessionToken().getToken())
@@ -196,7 +218,7 @@ public class MusicNotificationService extends Service {
         Notification notification = builder
                 .setContentTitle(title)
                 .setContentText(artist)
-                .setLargeIcon(cachedArtwork)
+                .setLargeIcon(artwork)
                 .setColor(Color.parseColor("#08080E"))
                 .setColorized(true)
                 .setContentIntent(contentIntent)
@@ -209,24 +231,25 @@ public class MusicNotificationService extends Service {
                 .setVisibility(Notification.VISIBILITY_PUBLIC)
                 .build();
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
-        } else {
-            startForeground(NOTIFICATION_ID, notification);
-        }
-
-        if (!isPlaying) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                stopForeground(STOP_FOREGROUND_DETACH);
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
             } else {
-                stopForeground(false);
+                startForeground(NOTIFICATION_ID, notification);
             }
-            NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-            if (nm != null) nm.notify(NOTIFICATION_ID, notification);
-        }
+
+            if (!isPlaying) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    stopForeground(STOP_FOREGROUND_DETACH);
+                } else {
+                    stopForeground(false);
+                }
+                NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+                if (nm != null) nm.notify(NOTIFICATION_ID, notification);
+            }
+        } catch (Exception ignored) {}
     }
 
-    // ساخت آیکون کوچک شفاف (نت موسیقی ظریف) برای بالای نوتیفیکیشن تا کادر سفید توپر نیفتد
     private Icon createCleanSmallIcon() {
         int size = 72;
         Bitmap bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
@@ -235,7 +258,6 @@ public class MusicNotificationService extends Service {
         p.setColor(Color.WHITE);
         p.setStyle(Paint.Style.FILL);
 
-        // رسم نت موسیقی استاندارد (♪)
         c.drawOval(14f, 42f, 36f, 60f, p);
         c.drawRect(30f, 14f, 36f, 52f, p);
         Path flag = new Path();
@@ -248,7 +270,6 @@ public class MusicNotificationService extends Service {
         return Icon.createWithBitmap(bmp);
     }
 
-    // ساخت آیکون‌های تمیز، تیز و استاندارد برای دکمه‌های نوتیفیکیشن
     private Icon createCleanTransportIcon(String type) {
         int size = 96;
         Bitmap bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
@@ -293,23 +314,56 @@ public class MusicNotificationService extends Service {
         return PendingIntent.getService(this, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
-    private Bitmap loadTrackCover(String coverUrl, String mp3Url) {
-        if (coverUrl != null && coverUrl.startsWith("file:///android_asset/")) {
-            String path = coverUrl.replace("file:///android_asset/", "");
-            try (InputStream is = getAssets().open(path)) {
-                Bitmap bmp = BitmapFactory.decodeStream(is);
-                if (bmp != null) return bmp;
-            } catch (Exception ignored) {}
-        }
+    // لود بهینه کاور با کوچک‌سازی خودکار (جلوگیری از مصرف رم بالا برای عکس‌های سنگین)
+    private Bitmap loadTrackCoverSampled(String coverUrl, String mp3Url) {
+        try {
+            if (coverUrl != null && coverUrl.startsWith("file:///android_asset/")) {
+                String path = coverUrl.replace("file:///android_asset/", "");
+                BitmapFactory.Options bounds = new BitmapFactory.Options();
+                bounds.inJustDecodeBounds = true;
+                try (InputStream is = getAssets().open(path)) {
+                    BitmapFactory.decodeStream(is, null, bounds);
+                }
+                BitmapFactory.Options opts = new BitmapFactory.Options();
+                opts.inSampleSize = calculateInSampleSize(bounds.outWidth, bounds.outHeight, 320);
+                try (InputStream is = getAssets().open(path)) {
+                    Bitmap bmp = BitmapFactory.decodeStream(is, null, opts);
+                    if (bmp != null) return bmp;
+                }
+            } else if (coverUrl != null && coverUrl.startsWith("file://")) {
+                String path = Uri.parse(coverUrl).getPath();
+                if (path != null && new File(path).exists()) {
+                    BitmapFactory.Options bounds = new BitmapFactory.Options();
+                    bounds.inJustDecodeBounds = true;
+                    BitmapFactory.decodeFile(path, bounds);
+                    BitmapFactory.Options opts = new BitmapFactory.Options();
+                    opts.inSampleSize = calculateInSampleSize(bounds.outWidth, bounds.outHeight, 320);
+                    Bitmap bmp = BitmapFactory.decodeFile(path, opts);
+                    if (bmp != null) return bmp;
+                }
+            }
+        } catch (Exception ignored) {}
 
-        if (mp3Url != null && mp3Url.startsWith("file:///android_asset/")) {
-            String path = mp3Url.replace("file:///android_asset/", "");
+        if (mp3Url != null) {
             MediaMetadataRetriever retriever = new MediaMetadataRetriever();
-            try (AssetFileDescriptor afd = getAssets().openFd(path)) {
-                retriever.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
+            try {
+                if (mp3Url.startsWith("file:///android_asset/")) {
+                    String path = mp3Url.replace("file:///android_asset/", "");
+                    try (AssetFileDescriptor afd = getAssets().openFd(path)) {
+                        retriever.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
+                    }
+                } else if (mp3Url.startsWith("file://")) {
+                    String path = Uri.parse(mp3Url).getPath();
+                    if (path != null) retriever.setDataSource(path);
+                }
                 byte[] art = retriever.getEmbeddedPicture();
                 if (art != null) {
-                    return BitmapFactory.decodeByteArray(art, 0, art.length);
+                    BitmapFactory.Options bounds = new BitmapFactory.Options();
+                    bounds.inJustDecodeBounds = true;
+                    BitmapFactory.decodeByteArray(art, 0, art.length, bounds);
+                    BitmapFactory.Options opts = new BitmapFactory.Options();
+                    opts.inSampleSize = calculateInSampleSize(bounds.outWidth, bounds.outHeight, 320);
+                    return BitmapFactory.decodeByteArray(art, 0, art.length, opts);
                 }
             } catch (Exception ignored) {
             } finally {
@@ -319,22 +373,29 @@ public class MusicNotificationService extends Service {
         return null;
     }
 
-    // ساخت تصویر مربعی استاندارد (600x600): کاور آهنگ در سمت راست که به نرمی در آسمان پرستاره سمت چپ محو می‌شود
+    private int calculateInSampleSize(int width, int height, int reqSize) {
+        int inSampleSize = 1;
+        if (height > reqSize || width > reqSize) {
+            int halfH = height / 2;
+            int halfW = width / 2;
+            while ((halfH / inSampleSize) >= reqSize && (halfW / inSampleSize) >= reqSize) {
+                inSampleSize *= 2;
+            }
+        }
+        return inSampleSize;
+    }
+
     private Bitmap createSeamlessStarryCover(Bitmap cover, int seed) {
-        int size = 600;
+        int size = 384;
         Bitmap output = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(output);
-
-        // ۱. پس‌زمینه مشکی مطلق
         canvas.drawColor(Color.parseColor("#040408"));
 
-        // ۲. اگر کاور وجود دارد، آن را در نیمه راست قرار می‌دهیم و لبه‌هایش را به نرمی در مشکی سمت چپ محو (Blend) می‌کنیم
         if (cover != null) {
             Bitmap layer = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
             Canvas layerCanvas = new Canvas(layer);
 
-            // قرار دادن کاور در سمت راست بوم
-            Rect destRect = new Rect(140, 0, size, size);
+            Rect destRect = new Rect(90, 0, size, size);
             int minDim = Math.min(cover.getWidth(), cover.getHeight());
             int srcX = (cover.getWidth() - minDim) / 2;
             int srcY = (cover.getHeight() - minDim) / 2;
@@ -343,46 +404,43 @@ public class MusicNotificationService extends Service {
             Paint bmpPaint = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.ANTI_ALIAS_FLAG);
             layerCanvas.drawBitmap(cover, srcRect, destRect, bmpPaint);
 
-            // ماسک محوشونده افقی (از چپ کاملاً شفاف، به راست کاملاً واضح)
             Paint maskPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            maskPaint.setShader(new LinearGradient(140f, 0f, 420f, 0f,
+            maskPaint.setShader(new LinearGradient(90f, 0f, 270f, 0f,
                     new int[]{Color.TRANSPARENT, Color.argb(140, 0, 0, 0), Color.BLACK},
                     new float[]{0f, 0.5f, 1f},
                     Shader.TileMode.CLAMP));
             maskPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_IN));
             layerCanvas.drawRect(0, 0, size, size, maskPaint);
 
-            // کمی تیره‌تر کردن کلی کاور تا متن سفید نوتیفیکیشن همیشه خوانا باشد
             Paint dimPaint = new Paint();
             dimPaint.setColor(Color.argb(65, 0, 0, 0));
             layerCanvas.drawRect(0, 0, size, size, dimPaint);
 
             canvas.drawBitmap(layer, 0, 0, null);
+            layer.recycle();
         }
 
-        // ۳. رسم آسمان پرستاره طبیعی روی نیمه چپ و میانی
         Random rnd = new Random(seed);
         Paint starPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        for (int i = 0; i < 110; i++) {
-            // تمرکز بیشتر ستاره‌ها در سمت چپ و وسط (زیر اسم آهنگ)
+        for (int i = 0; i < 80; i++) {
             float sx = rnd.nextFloat() * (size * 0.85f);
             float sy = rnd.nextFloat() * size;
-            boolean isBright = i < 16;
-            float sr = isBright ? (1.6f + rnd.nextFloat() * 1.5f) : (0.7f + rnd.nextFloat() * 1.1f);
+            boolean isBright = i < 12;
+            float sr = isBright ? (1.2f + rnd.nextFloat() * 1.1f) : (0.6f + rnd.nextFloat() * 0.8f);
             int alpha = isBright ? (190 + rnd.nextInt(65)) : (75 + rnd.nextInt(130));
 
             if (isBright) {
-                RadialGradient glow = new RadialGradient(sx, sy, sr * 4.2f,
+                RadialGradient glow = new RadialGradient(sx, sy, sr * 4.0f,
                         Color.argb(alpha / 2, 255, 250, 235),
                         Color.TRANSPARENT, Shader.TileMode.CLAMP);
                 starPaint.setShader(glow);
-                canvas.drawCircle(sx, sy, sr * 4.2f, starPaint);
+                canvas.drawCircle(sx, sy, sr * 4.0f, starPaint);
                 starPaint.setShader(null);
 
                 starPaint.setColor(Color.argb(alpha, 255, 255, 255));
-                starPaint.setStrokeWidth(0.9f);
-                canvas.drawLine(sx - sr * 3.2f, sy, sx + sr * 3.2f, sy, starPaint);
-                canvas.drawLine(sx, sy - sr * 3.2f, sx, sy + sr * 3.2f, starPaint);
+                starPaint.setStrokeWidth(0.8f);
+                canvas.drawLine(sx - sr * 3.0f, sy, sx + sr * 3.0f, sy, starPaint);
+                canvas.drawLine(sx, sy - sr * 3.0f, sx, sy + sr * 3.0f, starPaint);
             }
             starPaint.setColor(Color.argb(alpha, 255, 255, 255));
             canvas.drawCircle(sx, sy, sr, starPaint);
@@ -398,7 +456,7 @@ public class MusicNotificationService extends Service {
                     "Music Playback",
                     NotificationManager.IMPORTANCE_LOW
             );
-            channel.setDescription("Controls for Music Love Box");
+            channel.setDescription("Controls for Mavi");
             channel.setShowBadge(false);
             channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
             NotificationManager manager = getSystemService(NotificationManager.class);
@@ -415,6 +473,7 @@ public class MusicNotificationService extends Service {
 
     @Override
     public void onDestroy() {
+        bgExecutor.shutdownNow();
         if (mediaSession != null) {
             mediaSession.setActive(false);
             mediaSession.release();
