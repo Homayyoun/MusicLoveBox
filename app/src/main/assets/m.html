@@ -55,7 +55,6 @@
             visibility: hidden;
             transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease, visibility 0s 0.25s;
         }
-        /* حذف mask-image سنگین از کانتینر اسکرول برای اسکرول فوق‌روان ۶۰ فریم */
         .main-scroll-area {
             width: 100%;
             height: 100%;
@@ -74,7 +73,6 @@
             margin-bottom: 14px;
             position: relative;
         }
-        /* گرادیان مشکی عمیق روی فوتر برای محو شدن نرم آهنگ‌ها هنگام اسکرول به پایین */
         .main-footer {
             position: absolute;
             bottom: 0;
@@ -94,7 +92,7 @@
             margin: 0 auto;
         }
 
-        /* ====== قلب تپنده و شمارنده (بهینه‌سازی شده برای GPU بدون فیلتر سنگین) ====== */
+        /* ====== قلب تپنده و شمارنده ====== */
         .heartbeat-counter-box {
             display: inline-flex;
             align-items: center;
@@ -221,14 +219,14 @@
             margin: 16px auto 0 auto;
         }
 
-        /* ====== پاکت نامه جادویی ====== */
+        /* ====== پاکت نامه جادویی و برگه کلاسیک ارتقایافته ====== */
         .magic-letter-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.84);
+            background: radial-gradient(circle at 50% 48%, rgba(20, 18, 28, 0.82) 0%, rgba(0, 0, 0, 0.9) 75%);
             z-index: 250;
             display: flex;
             align-items: center;
@@ -236,13 +234,13 @@
             opacity: 0;
             visibility: hidden;
             pointer-events: none;
-            transition: opacity 0.45s ease, visibility 0s 0.45s;
+            transition: opacity 0.65s ease, visibility 0s 0.65s;
         }
         .magic-letter-overlay.show {
             opacity: 1;
             visibility: visible;
             pointer-events: auto;
-            transition: opacity 0.45s ease, visibility 0s 0s;
+            transition: opacity 0.65s ease, visibility 0s 0s;
         }
         #magic-dust-canvas {
             position: absolute;
@@ -253,83 +251,132 @@
             pointer-events: none;
             z-index: 1;
         }
-        .envelope-stage {
+        .envelope-wrapper {
             position: relative;
             z-index: 2;
-            width: 270px;
-            height: 180px;
-            perspective: 1100px;
-            -webkit-perspective: 1100px;
-            cursor: pointer;
-            animation: floatEnvelope 3.6s ease-in-out infinite;
-            transition: transform 0.65s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.55s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            opacity: 0;
+            transform: translateY(28px) scale(0.86);
+            transition: transform 0.85s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.75s ease;
         }
-        @keyframes floatEnvelope {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-7px); }
+        .magic-letter-overlay.show .envelope-wrapper {
+            opacity: 1;
+            transform: translateY(0) scale(1);
         }
-        .envelope-stage.hide-envelope {
-            animation: none;
-            transform: translateY(45px) scale(0.9);
+        .envelope-wrapper.hide-envelope {
+            transform: translateY(42px) scale(0.88);
             opacity: 0;
             pointer-events: none;
+            transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s ease;
+        }
+        /* هاله نور طلایی ملایم پشت پاکت */
+        .envelope-aura {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 310px;
+            height: 220px;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 240, 205, 0.16) 0%, rgba(255, 232, 185, 0.05) 45%, transparent 72%);
+            pointer-events: none;
+            animation: auraPulse 3.4s ease-in-out infinite;
+        }
+        @keyframes auraPulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(0.96); opacity: 0.7; }
+            50% { transform: translate(-50%, -50%) scale(1.08); opacity: 1; }
+        }
+        .envelope-stage {
+            position: relative;
+            width: 274px;
+            height: 184px;
+            perspective: 1200px;
+            -webkit-perspective: 1200px;
+            cursor: pointer;
+            animation: floatEnvelope 3.8s ease-in-out infinite;
+        }
+        @keyframes floatEnvelope {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(0.4deg); }
+        }
+        .envelope-stage.opening {
+            animation: none;
         }
         .env-back {
             position: absolute;
             inset: 0;
-            background: linear-gradient(145deg, #16151d 0%, #0b0a0f 100%);
-            border-radius: 14px;
-            border: 1px solid rgba(255, 240, 210, 0.35);
-            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.9), 0 0 28px rgba(255, 242, 215, 0.12);
+            background: linear-gradient(145deg, #191722 0%, #0b0a10 100%);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 240, 210, 0.4);
+            box-shadow: 0 22px 50px rgba(0, 0, 0, 0.92), 0 0 32px rgba(255, 242, 215, 0.14);
         }
         .env-inner-paper {
             position: absolute;
-            left: 14px;
-            right: 14px;
+            left: 15px;
+            right: 15px;
             top: 12px;
             bottom: 12px;
-            background: radial-gradient(circle at 50% 20%, #24212c 0%, #121118 100%);
-            border: 1px solid rgba(255, 238, 205, 0.32);
+            background: radial-gradient(circle at 50% 20%, #2a2634 0%, #14121b 100%);
+            border: 1px solid rgba(255, 240, 210, 0.38);
             border-radius: 10px;
             z-index: 2;
-            padding: 16px;
+            padding: 18px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            transition: transform 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+            gap: 9px;
+            transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.6s ease;
             box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.6);
         }
         .inner-paper-line {
-            width: 70%;
+            width: 68%;
             height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(255, 240, 210, 0.35), transparent);
+            background: linear-gradient(90deg, transparent, rgba(255, 240, 210, 0.4), transparent);
         }
         .inner-paper-line.short {
-            width: 45%;
+            width: 42%;
         }
         .envelope-stage.opening .env-inner-paper {
-            transform: translateY(-95px) scale(1.02);
+            transform: translateY(-102px) scale(1.03);
+            box-shadow: 0 -8px 28px rgba(255, 240, 210, 0.16);
         }
         .env-front-pocket {
             position: absolute;
             inset: 0;
             z-index: 3;
             pointer-events: none;
-            border-radius: 14px;
+            border-radius: 15px;
             overflow: hidden;
+        }
+        /* بازتاب نور جادویی گذرا روی پاکت */
+        .env-front-pocket::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -75%;
+            width: 50%;
+            height: 200%;
+            background: linear-gradient(to right, transparent 0%, rgba(255, 245, 220, 0.12) 50%, transparent 100%);
+            transform: rotate(24deg);
+            animation: envShimmer 4.5s ease-in-out infinite;
+        }
+        @keyframes envShimmer {
+            0%, 55% { left: -75%; }
+            100% { left: 155%; }
         }
         .env-top-flap {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
-            height: 108px;
+            height: 110px;
             z-index: 4;
             transform-origin: top center;
             -webkit-transform-origin: top center;
-            transition: transform 0.65s cubic-bezier(0.4, 0, 0.2, 1), z-index 0s 0.32s;
+            transition: transform 0.68s cubic-bezier(0.4, 0, 0.2, 1), z-index 0s 0.32s;
             pointer-events: none;
         }
         .envelope-stage.opening .env-top-flap {
@@ -338,48 +385,51 @@
         }
         .env-wax-seal {
             position: absolute;
-            top: 96px;
+            top: 98px;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 36px;
-            height: 36px;
+            width: 38px;
+            height: 38px;
             border-radius: 50%;
-            background: radial-gradient(circle at 35% 35%, #2b2735 0%, #0f0e14 85%);
-            border: 1px solid rgba(255, 238, 205, 0.55);
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.85), 0 0 14px rgba(255, 240, 210, 0.22);
+            background: radial-gradient(circle at 32% 32%, #352f42 0%, #121018 85%);
+            border: 1px solid rgba(255, 240, 210, 0.62);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.9), 0 0 18px rgba(255, 240, 210, 0.28);
             z-index: 5;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: transform 0.35s ease, opacity 0.35s ease;
+            transition: transform 0.38s ease, opacity 0.35s ease;
         }
         .env-wax-seal svg {
-            width: 15px;
-            height: 15px;
-            fill: rgba(255, 244, 224, 0.9);
+            width: 16px;
+            height: 16px;
+            fill: rgba(255, 246, 228, 0.95);
+            filter: drop-shadow(0 0 5px rgba(255, 242, 215, 0.55));
         }
         .envelope-stage.opening .env-wax-seal {
-            transform: translate(-50%, -50%) scale(0.5);
+            transform: translate(-50%, -50%) scale(1.35);
             opacity: 0;
         }
+
+        /* برگه نامه بازشده با طراحی کلاسیک و قاب هنری */
         .opened-letter-card {
             position: absolute;
             z-index: 6;
             width: calc(100% - 44px);
-            max-width: 335px;
+            max-width: 332px;
             max-height: 74vh;
-            background: radial-gradient(circle at 50% 12%, rgba(28, 26, 36, 0.96) 0%, rgba(10, 10, 15, 0.98) 70%, #040407 100%);
-            border: 1px solid rgba(255, 240, 215, 0.32);
-            border-radius: 24px;
-            padding: 28px 22px 24px 22px;
-            box-shadow: 0 22px 55px rgba(0, 0, 0, 0.92);
+            background: radial-gradient(circle at 50% 8%, rgba(34, 30, 44, 0.96) 0%, rgba(12, 11, 17, 0.98) 65%, #050508 100%);
+            border: 1px solid rgba(255, 240, 215, 0.36);
+            border-radius: 22px;
+            padding: 14px;
+            box-shadow: 0 26px 65px rgba(0, 0, 0, 0.95), 0 0 40px rgba(255, 240, 210, 0.1);
             display: flex;
             flex-direction: column;
             align-items: center;
             opacity: 0;
-            transform: translateY(35px) scale(0.92);
+            transform: translateY(42px) scale(0.9);
             pointer-events: none;
-            transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.5s ease;
+            transition: transform 0.72s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.6s ease;
         }
         .opened-letter-card.reading {
             opacity: 1;
@@ -387,26 +437,60 @@
             pointer-events: auto;
         }
         .opened-letter-inner-frame {
+            position: relative;
             width: 100%;
-            border: 1px solid rgba(255, 240, 215, 0.12);
-            border-radius: 16px;
-            padding: 20px 16px;
+            border: 1px solid rgba(255, 240, 215, 0.16);
+            border-radius: 14px;
+            padding: 26px 20px 24px 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            max-height: calc(74vh - 56px);
+            max-height: calc(74vh - 28px);
         }
-        .letter-ornament-top {
-            width: 50px;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(255, 240, 215, 0.45), transparent);
-            margin-bottom: 16px;
+        /* گوشه‌های تزئینی مینیمال روی برگه نامه */
+        .letter-corner {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-color: rgba(255, 240, 215, 0.45);
+            border-style: solid;
+            pointer-events: none;
+        }
+        .lc-tl { top: 6px; left: 6px; border-width: 1px 0 0 1px; border-top-left-radius: 5px; }
+        .lc-tr { top: 6px; right: 6px; border-width: 1px 1px 0 0; border-top-right-radius: 5px; }
+        .lc-bl { bottom: 6px; left: 6px; border-width: 0 0 1px 1px; border-bottom-left-radius: 5px; }
+        .lc-br { bottom: 6px; right: 6px; border-width: 0 1px 1px 0; border-bottom-right-radius: 5px; }
+
+        .letter-emblem {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 18px;
             flex-shrink: 0;
+            opacity: 0;
+            transform: translateY(6px);
+            transition: opacity 0.6s ease 0.25s, transform 0.6s ease 0.25s;
+        }
+        .opened-letter-card.reading .letter-emblem {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .letter-emblem-line {
+            width: 34px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 240, 215, 0.5), transparent);
+        }
+        .letter-emblem svg {
+            width: 14px;
+            height: 14px;
+            fill: rgba(255, 244, 224, 0.9);
+            filter: drop-shadow(0 0 6px rgba(255, 240, 210, 0.55));
         }
         .opened-letter-text {
-            color: rgba(255, 253, 248, 0.94);
-            font-size: 0.92rem;
-            line-height: 1.85;
+            color: rgba(255, 252, 245, 0.95);
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 0.98rem;
+            line-height: 1.92;
             text-align: center;
             white-space: pre-wrap;
             overflow-y: auto;
@@ -414,17 +498,30 @@
             width: 100%;
             direction: auto;
             font-weight: 400;
-            letter-spacing: 0.3px;
+            letter-spacing: 0.35px;
+            text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.75s ease 0.38s, transform 0.75s cubic-bezier(0.22, 1, 0.36, 1) 0.38s;
+        }
+        .opened-letter-card.reading .opened-letter-text {
+            opacity: 1;
+            transform: translateY(0);
         }
         .letter-ornament-bottom {
-            width: 36px;
+            width: 44px;
             height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(255, 240, 215, 0.35), transparent);
-            margin-top: 16px;
+            background: linear-gradient(90deg, transparent, rgba(255, 240, 215, 0.38), transparent);
+            margin-top: 20px;
             flex-shrink: 0;
+            opacity: 0;
+            transition: opacity 0.6s ease 0.52s;
+        }
+        .opened-letter-card.reading .letter-ornament-bottom {
+            opacity: 1;
         }
 
-        /* ====== لیست آهنگ‌ها (سبک و بهینه برای اسکرول سریع) ====== */
+        /* ====== لیست آهنگ‌ها ====== */
         .track-list {
             display: flex;
             flex-direction: column;
@@ -487,7 +584,7 @@
             flex-shrink: 0;
         }
 
-        /* ====== صفحه پلیر ====== */
+        /* ====== صفحه پلیر (شفاف برای نمایش کامل ستاره‌ها در پس‌زمینه) ====== */
         .player-page {
             position: fixed;
             top: 0;
@@ -636,6 +733,7 @@
             text-align: center;
             white-space: pre-wrap;
             font-family: monospace;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
             will-change: transform;
             transform: translate3d(0, 0, 0);
         }
@@ -795,56 +893,69 @@
     <div id="magic-letter-overlay" class="magic-letter-overlay">
         <canvas id="magic-dust-canvas"></canvas>
 
-        <div id="envelope-stage" class="envelope-stage">
-            <div class="env-back"></div>
+        <div id="envelope-wrapper" class="envelope-wrapper">
+            <div class="envelope-aura"></div>
+            <div id="envelope-stage" class="envelope-stage">
+                <div class="env-back"></div>
 
-            <div class="env-inner-paper">
-                <div class="inner-paper-line"></div>
-                <div class="inner-paper-line short"></div>
-            </div>
+                <div class="env-inner-paper">
+                    <div class="inner-paper-line"></div>
+                    <div class="inner-paper-line short"></div>
+                </div>
 
-            <div class="env-front-pocket">
-                <svg viewBox="0 0 270 180" width="100%" height="100%" preserveAspectRatio="none">
-                    <defs>
-                        <linearGradient id="pocketGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stop-color="#191722" />
-                            <stop offset="100%" stop-color="#0d0c12" />
-                        </linearGradient>
-                        <linearGradient id="bottomFlapGrad" x1="0%" y1="100%" x2="0%" y2="0%">
-                            <stop offset="0%" stop-color="#121118" />
-                            <stop offset="100%" stop-color="#1e1c28" />
-                        </linearGradient>
-                    </defs>
-                    <path d="M0,0 L135,98 L0,180 Z" fill="url(#pocketGrad)" stroke="rgba(255,240,210,0.22)" stroke-width="1"/>
-                    <path d="M270,0 L135,98 L270,180 Z" fill="url(#pocketGrad)" stroke="rgba(255,240,210,0.22)" stroke-width="1"/>
-                    <path d="M0,180 L135,88 L270,180 Z" fill="url(#bottomFlapGrad)" stroke="rgba(255,240,210,0.32)" stroke-width="1.2"/>
-                    <rect x="6" y="6" width="258" height="168" rx="10" ry="10" fill="none" stroke="rgba(255,240,210,0.14)" stroke-width="0.9" stroke-dasharray="3,3"/>
-                </svg>
-            </div>
+                <div class="env-front-pocket">
+                    <svg viewBox="0 0 274 184" width="100%" height="100%" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id="pocketGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#1b1825" />
+                                <stop offset="100%" stop-color="#0d0c13" />
+                            </linearGradient>
+                            <linearGradient id="bottomFlapGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+                                <stop offset="0%" stop-color="#121118" />
+                                <stop offset="100%" stop-color="#211e2d" />
+                            </linearGradient>
+                        </defs>
+                        <path d="M0,0 L137,100 L0,184 Z" fill="url(#pocketGrad)" stroke="rgba(255,240,210,0.24)" stroke-width="1"/>
+                        <path d="M274,0 L137,100 L274,184 Z" fill="url(#pocketGrad)" stroke="rgba(255,240,210,0.24)" stroke-width="1"/>
+                        <path d="M0,184 L137,90 L274,184 Z" fill="url(#bottomFlapGrad)" stroke="rgba(255,240,210,0.34)" stroke-width="1.2"/>
+                        <rect x="6" y="6" width="262" height="172" rx="10" ry="10" fill="none" stroke="rgba(255,240,210,0.16)" stroke-width="0.9" stroke-dasharray="3,3"/>
+                    </svg>
+                </div>
 
-            <div class="env-top-flap">
-                <svg viewBox="0 0 270 108" width="100%" height="100%" preserveAspectRatio="none">
-                    <defs>
-                        <linearGradient id="topFlapGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" stop-color="#221f2d" />
-                            <stop offset="100%" stop-color="#14131c" />
-                        </linearGradient>
-                    </defs>
-                    <path d="M0,0 L135,98 L270,0 Z" fill="url(#topFlapGrad)" stroke="rgba(255,240,210,0.38)" stroke-width="1.2"/>
-                    <path d="M14,6 L135,90 L256,6" fill="none" stroke="rgba(255,240,210,0.15)" stroke-width="0.8"/>
-                </svg>
-            </div>
+                <div class="env-top-flap">
+                    <svg viewBox="0 0 274 110" width="100%" height="100%" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id="topFlapGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="#242031" />
+                                <stop offset="100%" stop-color="#15131e" />
+                            </linearGradient>
+                        </defs>
+                        <path d="M0,0 L137,100 L274,0 Z" fill="url(#topFlapGrad)" stroke="rgba(255,240,210,0.4)" stroke-width="1.2"/>
+                        <path d="M14,6 L137,92 L260,6" fill="none" stroke="rgba(255,240,210,0.16)" stroke-width="0.8"/>
+                    </svg>
+                </div>
 
-            <div class="env-wax-seal">
-                <svg viewBox="0 0 24 24">
-                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                </svg>
+                <div class="env-wax-seal">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                    </svg>
+                </div>
             </div>
         </div>
 
         <div id="opened-letter-card" class="opened-letter-card">
             <div class="opened-letter-inner-frame">
-                <div class="letter-ornament-top"></div>
+                <div class="letter-corner lc-tl"></div>
+                <div class="letter-corner lc-tr"></div>
+                <div class="letter-corner lc-bl"></div>
+                <div class="letter-corner lc-br"></div>
+                <div class="letter-emblem">
+                    <div class="letter-emblem-line"></div>
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                    </svg>
+                    <div class="letter-emblem-line"></div>
+                </div>
                 <div id="opened-letter-text" class="opened-letter-text"></div>
                 <div class="letter-ornament-bottom"></div>
             </div>
@@ -946,12 +1057,12 @@
     <audio id="audio-player" preload="metadata"></audio>
 
     <script>
-        // ====== تنظیمات پاکت نامه جادویی (متن روز پرنسس) ======
+        // ====== تنظیمات پاکت نامه جادویی ======
         const magicLetterConfig = {
             enabled: true,
-            id: "princess_day_2026",
+            id: "always_together_2026",
             showOnce: false,
-            text: "To My One and Only Princess,\n\nIn a world full of ordinary moments, you are my favorite fairytale. Every star in this sky, every melody here, and every single beat of my heart is just for you.\n\nHappy Princess Day, my love. ♡"
+            text: "Sad moments never really matter.\n\nAll that matters is that you and I stay by each other’s side, and love each other more every single day. ♡"
         };
 
         const presetTracks = {};
@@ -987,6 +1098,7 @@
         let touchStartY = 0;
         let touchScrollStartY = 0;
         let dustAnimFrame = null;
+        let burstDustCallback = null;
         let isLetterShownThisSession = false;
         let lastFormattedCur = '';
         let lastFormattedDur = '';
@@ -1035,7 +1147,7 @@
             }
         }
 
-        // ====== پاکت نامه جادویی ======
+        // ====== پاکت نامه جادویی با افکت جرقه هنگام باز شدن ======
         function checkAndShowMagicLetter() {
             if (isLetterShownThisSession) return;
             if (!magicLetterConfig.enabled || !magicLetterConfig.text || !magicLetterConfig.text.trim()) return;
@@ -1047,12 +1159,14 @@
 
             isLetterShownThisSession = true;
             const overlay = document.getElementById('magic-letter-overlay');
+            const envWrapper = document.getElementById('envelope-wrapper');
             const envStage = document.getElementById('envelope-stage');
             const letterCard = document.getElementById('opened-letter-card');
             const letterText = document.getElementById('opened-letter-text');
 
             letterText.innerText = magicLetterConfig.text.trim();
-            envStage.classList.remove('opening', 'hide-envelope');
+            envWrapper.classList.remove('hide-envelope');
+            envStage.classList.remove('opening');
             letterCard.classList.remove('reading');
             overlay.classList.add('show');
 
@@ -1065,6 +1179,10 @@
                 isOpened = true;
                 triggerSingleHeartbeatPulse();
 
+                if (typeof burstDustCallback === 'function') {
+                    burstDustCallback();
+                }
+
                 if (magicLetterConfig.showOnce) {
                     localStorage.setItem(storageKey, "true");
                 }
@@ -1072,9 +1190,9 @@
                 envStage.classList.add('opening');
 
                 setTimeout(() => {
-                    envStage.classList.add('hide-envelope');
+                    envWrapper.classList.add('hide-envelope');
                     letterCard.classList.add('reading');
-                }, 780);
+                }, 820);
             };
 
             overlay.onclick = (e) => {
@@ -1086,7 +1204,7 @@
                             cancelAnimationFrame(dustAnimFrame);
                             dustAnimFrame = null;
                         }
-                    }, 500);
+                    }, 680);
                 }
             };
         }
@@ -1101,8 +1219,9 @@
             canvas.height = h * dpr;
             ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-            const envW = 270;
-            const envH = 180;
+            const envW = 274;
+            const envH = 184;
+            const burstParticles = [];
 
             function spawnParticle(initial = false) {
                 const cx = w / 2;
@@ -1122,14 +1241,14 @@
 
                 if (initial) y += Math.random() * 140;
 
-                const isGold = Math.random() > 0.35;
+                const isGold = Math.random() > 0.32;
                 return {
                     x: x,
                     y: y,
                     vx: (Math.random() - 0.5) * 0.35,
                     vy: 0.45 + Math.random() * 1.15,
                     r: 0.6 + Math.random() * 1.35,
-                    alpha: 0.15 + Math.random() * 0.8,
+                    alpha: 0.18 + Math.random() * 0.8,
                     maxLife: 110 + Math.random() * 100,
                     life: initial ? Math.random() * 90 : 0,
                     phase: Math.random() * Math.PI * 2,
@@ -1137,7 +1256,27 @@
                 };
             }
 
-            const particles = Array.from({ length: 85 }, () => spawnParticle(true));
+            // جرقه ستاره‌ها در لحظه لمس مهر پاکت
+            burstDustCallback = () => {
+                const cx = w / 2;
+                const cy = h / 2 + 6;
+                for (let i = 0; i < 42; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = 1.2 + Math.random() * 3.4;
+                    burstParticles.push({
+                        x: cx,
+                        y: cy,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed - 0.8,
+                        r: 0.9 + Math.random() * 1.6,
+                        life: 0,
+                        maxLife: 45 + Math.random() * 35,
+                        color: Math.random() > 0.3 ? '#FFF2D0' : '#FFFFFF'
+                    });
+                }
+            };
+
+            const particles = Array.from({ length: 90 }, () => spawnParticle(true));
 
             function animateDust() {
                 ctx.clearRect(0, 0, w, h);
@@ -1170,6 +1309,32 @@
                         particles[i] = spawnParticle(false);
                     }
                 }
+
+                for (let i = burstParticles.length - 1; i >= 0; i--) {
+                    const bp = burstParticles[i];
+                    bp.life++;
+                    bp.x += bp.vx;
+                    bp.y += bp.vy;
+                    bp.vx *= 0.96;
+                    bp.vy = bp.vy * 0.96 + 0.04;
+
+                    const alpha = Math.max(0, 1 - bp.life / bp.maxLife);
+                    ctx.globalAlpha = alpha * 0.4;
+                    ctx.fillStyle = bp.color;
+                    ctx.beginPath();
+                    ctx.arc(bp.x, bp.y, bp.r * 2.5, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.globalAlpha = alpha;
+                    ctx.beginPath();
+                    ctx.arc(bp.x, bp.y, bp.r, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    if (bp.life >= bp.maxLife) {
+                        burstParticles.splice(i, 1);
+                    }
+                }
+
                 ctx.globalAlpha = 1;
                 dustAnimFrame = requestAnimationFrame(animateDust);
             }
@@ -1249,26 +1414,16 @@
             overlayEl.addEventListener('click', stopHeartbeatExperience);
         }
 
+        // ====== آسمان پرستاره درخشان (۱۳۵ ستاره + پرتو ۴جهته + ۶۰ فریم نرم با کش هاله) ======
         function initStarsCanvas() {
             const canvas = document.getElementById('stars-canvas');
             const ctx = canvas.getContext('2d');
-            let dpr = Math.min(window.devicePixelRatio || 1, 1.25);
+            let dpr = Math.min(window.devicePixelRatio || 1, 2);
             let width = window.innerWidth;
             let height = window.innerHeight;
-            let isMainScrolling = false;
-            let scrollPauseTimer = null;
-
-            const scrollArea = document.querySelector('.main-scroll-area');
-            if (scrollArea) {
-                scrollArea.addEventListener('scroll', () => {
-                    isMainScrolling = true;
-                    if (scrollPauseTimer) clearTimeout(scrollPauseTimer);
-                    scrollPauseTimer = setTimeout(() => { isMainScrolling = false; }, 140);
-                }, { passive: true });
-            }
 
             function resizeCanvas() {
-                dpr = Math.min(window.devicePixelRatio || 1, 1.25);
+                dpr = Math.min(window.devicePixelRatio || 1, 2);
                 width = window.innerWidth;
                 height = window.innerHeight;
                 canvas.width = width * dpr;
@@ -1278,63 +1433,83 @@
             resizeCanvas();
             window.addEventListener('resize', resizeCanvas);
 
-            const glowSprite = document.createElement('canvas');
-            glowSprite.width = 24;
-            glowSprite.height = 24;
-            const gCtx = glowSprite.getContext('2d');
-            const radGrad = gCtx.createRadialGradient(12, 12, 0, 12, 12, 12);
-            radGrad.addColorStop(0, 'rgba(255, 252, 242, 0.85)');
-            radGrad.addColorStop(0.35, 'rgba(255, 248, 235, 0.25)');
-            radGrad.addColorStop(1, 'rgba(255, 248, 235, 0)');
-            gCtx.fillStyle = radGrad;
-            gCtx.beginPath();
-            gCtx.arc(12, 12, 12, 0, Math.PI * 2);
-            gCtx.fill();
+            const palettes = [
+                '255, 255, 255',
+                '255, 248, 232',
+                '225, 238, 255',
+                '242, 232, 255'
+            ];
 
-            const palettes = ['#FFFFFF', '#FFF8E8', '#E1EEFF', '#F2E8FF'];
+            const glowSprites = palettes.map(rgb => {
+                const sp = document.createElement('canvas');
+                sp.width = 64;
+                sp.height = 64;
+                const gCtx = sp.getContext('2d');
+                const grad = gCtx.createRadialGradient(32, 32, 0, 32, 32, 32);
+                grad.addColorStop(0, `rgba(${rgb}, 0.72)`);
+                grad.addColorStop(0.38, `rgba(${rgb}, 0.24)`);
+                grad.addColorStop(1, `rgba(${rgb}, 0)`);
+                gCtx.fillStyle = grad;
+                gCtx.beginPath();
+                gCtx.arc(32, 32, 32, 0, Math.PI * 2);
+                gCtx.fill();
+                return sp;
+            });
 
-            const stars = Array.from({ length: 85 }, (_, i) => {
-                const isBright = i < 12;
+            const stars = Array.from({ length: 135 }, (_, i) => {
+                const isBright = i < 18;
+                const paletteIdx = Math.floor(Math.random() * palettes.length);
                 return {
                     x: Math.random() * width,
                     y: Math.random() * height,
-                    r: isBright ? (1.3 + Math.random() * 1.0) : (0.55 + Math.random() * 0.9),
-                    color: palettes[Math.floor(Math.random() * palettes.length)],
+                    r: isBright ? (1.3 + Math.random() * 1.1) : (0.55 + Math.random() * 1.0),
+                    rgb: palettes[paletteIdx],
+                    sprite: glowSprites[paletteIdx],
                     phase: Math.random() * Math.PI * 2,
-                    freq: 0.025 + Math.random() * 0.045,
-                    minAlpha: isBright ? 0.28 : 0.1,
+                    freq: 0.012 + Math.random() * 0.028,
+                    minAlpha: isBright ? 0.25 : 0.08,
                     maxAlpha: isBright ? 1.0 : (0.55 + Math.random() * 0.35),
                     sparkle: isBright
                 };
             });
 
-            let lastFrameTime = 0;
-            function animateStars(now) {
-                requestAnimationFrame(animateStars);
-                if (isMainScrolling || now - lastFrameTime < 40) return;
-                lastFrameTime = now;
-
+            function animateStars() {
                 ctx.clearRect(0, 0, width, height);
 
                 for (let i = 0; i < stars.length; i++) {
                     const s = stars[i];
                     s.phase += s.freq;
                     const wave = (Math.sin(s.phase) + 1) * 0.5;
-                    const alpha = s.minAlpha + (wave * wave) * (s.maxAlpha - s.minAlpha);
+                    const alpha = s.minAlpha + Math.pow(wave, 1.8) * (s.maxAlpha - s.minAlpha);
 
                     if (s.sparkle) {
-                        const glowSize = s.r * (7.0 + wave * 3.5);
-                        ctx.globalAlpha = alpha * 0.72;
-                        ctx.drawImage(glowSprite, s.x - glowSize / 2, s.y - glowSize / 2, glowSize, glowSize);
+                        const glowDiameter = s.r * (3.6 + wave * 2.6) * 2;
+                        ctx.globalAlpha = alpha;
+                        ctx.drawImage(s.sprite, s.x - glowDiameter / 2, s.y - glowDiameter / 2, glowDiameter, glowDiameter);
+
+                        if (wave > 0.62) {
+                            const spikeLen = s.r * (2.8 + (wave - 0.62) * 8.5);
+                            ctx.globalAlpha = Math.min(1, (wave - 0.62) * 1.5);
+                            ctx.strokeStyle = `rgb(${s.rgb})`;
+                            ctx.lineWidth = 0.75;
+                            ctx.beginPath();
+                            ctx.moveTo(s.x - spikeLen, s.y);
+                            ctx.lineTo(s.x + spikeLen, s.y);
+                            ctx.moveTo(s.x, s.y - spikeLen);
+                            ctx.lineTo(s.x, s.y + spikeLen);
+                            ctx.stroke();
+                        }
                     }
 
                     ctx.globalAlpha = alpha;
-                    ctx.fillStyle = s.color;
+                    ctx.fillStyle = `rgb(${s.rgb})`;
                     ctx.beginPath();
                     ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
                     ctx.fill();
                 }
+
                 ctx.globalAlpha = 1;
+                requestAnimationFrame(animateStars);
             }
             requestAnimationFrame(animateStars);
         }
@@ -1372,16 +1547,6 @@
                 } catch (e) {
                     tracks = [];
                 }
-            }
-            if (tracks.length === 0) {
-                tracks = Object.keys(presetTracks).map((file, idx) => ({
-                    id: idx + 1,
-                    fileName: file,
-                    title: presetTracks[file].title,
-                    artist: presetTracks[file].artist,
-                    cover: presetTracks[file].cover,
-                    mp3: "file:///android_asset/media/audios/" + file
-                }));
             }
         }
 
@@ -1492,7 +1657,6 @@
             coverCard3d.classList.toggle('is-flipped');
         });
 
-        // محاسبه ابعاد اسکرول لیریک فقط یک‌بار هنگام تغییر متن یا تغییر سایز صفحه (حذف Layout Thrashing)
         function recalculateLyricsBounds() {
             maxLyricsScroll = Math.max(0, lyricsInner.offsetHeight - playerLyrics.clientHeight);
         }
@@ -1526,7 +1690,6 @@
             maxLyricsScroll = 0;
             lyricsInner.style.transform = 'translate3d(0, 0, 0)';
 
-            // تاخیر کوتاه برای اینکه انیمیشن کلیک و شروع پخش آهنگ بدون کوچک‌ترین مکث انجام شود
             setTimeout(() => {
                 if (!tr || currentTrackId !== tr.id) return;
                 let rawText = lyricsCache[tr.id];
@@ -1553,7 +1716,6 @@
             }, 90);
         }
 
-        // حلقه اسکرول لیریک فقط وقتی روشن است که هم پلیر باز باشد و هم آهنگ در حال پخش باشد
         function lyricsLoopStep() {
             if (!isPlayerOpen || !isPlaying) {
                 lyricsRafId = null;
